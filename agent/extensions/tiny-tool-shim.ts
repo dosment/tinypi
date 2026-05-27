@@ -41,8 +41,8 @@ interface TinyToolShimConfig {
 const DEFAULT_CONFIG: Required<TinyToolShimConfig> = {
 	baseUrl: "http://localhost:11434/v1",
 	apiKey: "ollama",
-	models: ["gemma4:e2b", "gemma4:e4b", "qwen3:4b", "qwen2.5-coder:3b", "qwen2.5-coder:7b"],
-	contextWindow: 32768,
+	models: ["gemma4:e2b-mlx", "gemma4:e4b-mlx", "qwen3:4b", "qwen2.5-coder:3b", "qwen2.5-coder:7b"],
+	contextWindow: 131072,
 	maxTokens: 2048,
 	requestTimeoutMs: 120000,
 	repairAttempts: 1,

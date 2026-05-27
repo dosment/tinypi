@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.75.5",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
+  "defaultProvider": "tiny-tools",
+  "defaultModel": "gemma4:e4b-mlx",
   "defaultThinkingLevel": "medium",
   "enableSkillCommands": false,
   "packages": [

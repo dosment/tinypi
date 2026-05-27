@@ -137,14 +137,14 @@ Current example:
   "baseUrl": "http://localhost:11434/v1",
   "apiKey": "ollama",
   "models": [
-    "gemma4:e2b",
-    "gemma4:e4b",
+    "gemma4:e2b-mlx",
+    "gemma4:e4b-mlx",
     "qwen3:4b",
     "qwen2.5-coder:3b",
     "qwen2.5-coder:7b"
   ],
   "discoverModels": true,
-  "contextWindow": 32768,
+  "contextWindow": 131072,
   "maxTokens": 2048,
   "repairAttempts": 1,
   "maxToolResultChars": 6000,
