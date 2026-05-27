@@ -49,6 +49,7 @@ agent/
     tight-learning.ts
   skills/
     tinypi-maintainer/
+    wiki-curator/
   npm/
     package.json
     package-lock.json
@@ -265,6 +266,14 @@ agent/skills/tinypi-maintainer/
 ```
 
 It teaches the agent how to maintain this harness: keep changes scoped, update the wiki, run checks, preserve the overlay model, and avoid committing local runtime state.
+
+TinyPi also includes a wiki curator skill:
+
+```text
+agent/skills/wiki-curator/
+```
+
+It teaches the agent how to maintain local wiki memory in the Karpathy-style LLM Wiki pattern while keeping public repository docs separate from private runtime memory.
 
 ## Development Checks
 

@@ -18,6 +18,7 @@ const required = [
 	"agent/extensions/tight-learning.ts",
 	"agent/extensions/tight-learning-core.js",
 	"agent/skills/tinypi-maintainer/SKILL.md",
+	"agent/skills/wiki-curator/SKILL.md",
 	"agent/npm/package.json",
 	"agent/npm/package-lock.json",
 	"agent/tests/tiny-tool-shim-parser.test.mjs",

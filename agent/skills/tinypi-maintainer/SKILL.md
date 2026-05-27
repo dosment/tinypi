@@ -10,11 +10,12 @@ description: Maintain the TinyPi harness repository. Use when changing TinyPi ex
 1. Inspect the relevant files before editing. Prefer `rg` and targeted reads.
 2. Keep changes scoped to the requested TinyPi behavior. Avoid unrelated refactors.
 3. Preserve the overlay model: TinyPi sits on top of pi.dev and should avoid pi core changes unless extension APIs are insufficient.
-4. Update the canonical wiki for durable changes:
-   - `agent/wiki/facts.md` for implemented project facts.
-   - `agent/wiki/workflows.md` for roadmap/workflow changes.
-   - `agent/wiki/tools/*.md` for tool or extension behavior.
-   - `agent/wiki/log.jsonl` for an audit entry.
+4. Update durable memory/docs for meaningful changes:
+   - `agent/memory/wiki/facts.md` for implemented project facts.
+   - `agent/memory/wiki/workflows.md` for roadmap/workflow changes.
+   - `agent/memory/wiki/log.jsonl` for local audit entries.
+   - `agent/wiki/tools/*.md` for public tool or extension docs.
+   - Never commit `agent/memory/`; it is local runtime memory.
 5. Run focused checks:
    - `npm run verify`
    - `npm test`

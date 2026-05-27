@@ -14,6 +14,8 @@ Location:
 
 It is designed for small models by avoiding vague hidden memory and large context dumps. The model searches a small Markdown wiki, reads only relevant pages or sections, and can save durable memories only after user approval.
 
+Use the `wiki-curator` skill for larger curation work such as source ingest, index upkeep, drift cleanup, or Karpathy-style LLM Wiki maintenance.
+
 ## Memory Location
 
 Local runtime memory:

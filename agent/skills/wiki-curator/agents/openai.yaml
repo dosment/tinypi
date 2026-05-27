@@ -1,0 +1,4 @@
+interface:
+  display_name: "Wiki Curator"
+  short_description: "Maintain local LLM wiki memory"
+  default_prompt: "Use $wiki-curator to curate local TinyPi wiki memory."
