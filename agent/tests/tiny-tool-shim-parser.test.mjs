@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { parseCommand, extractFirstJsonObject, lightRepairJson } from "../extensions/tiny-tool-shim-parser.js";
+import { parseCommand, extractFirstJsonObject, lightRepairJson } from "../extensions/lib/tiny-tool-shim-parser.js";
 
 const cases = [
 	{

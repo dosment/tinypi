@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { filterAvailableTools, isExplicitPlanningToolSet, routeTools } from "./tiny-tool-router-core.js";
+import { filterAvailableTools, isExplicitPlanningToolSet, routeTools } from "./lib/tiny-tool-router-core.js";
 
 const MAX_TOOLS = 10;
 

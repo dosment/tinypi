@@ -18,7 +18,7 @@ Location:
 
 ```text
 ~/.pi/agent/extensions/tight-learning.ts
-~/.pi/agent/extensions/tight-learning-core.js
+~/.pi/agent/extensions/lib/tight-learning-core.js
 ```
 
 ## Purpose

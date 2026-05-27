@@ -5,7 +5,7 @@ import {
 	normalizedLine,
 	splitSections,
 	summarizeLintIssues,
-} from "../extensions/wiki-memory-core.js";
+} from "../extensions/lib/wiki-memory-core.js";
 
 assert.equal(normalizedLine(" ## Hello   `World` "), "hello world");
 

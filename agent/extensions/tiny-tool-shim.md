@@ -9,7 +9,7 @@ It is intended for models like Gemma, small Qwen/Coder models, and other Ollama/
 ```text
 ~/.pi/agent/extensions/tiny-tool-shim.ts      # extension implementation
 ~/.pi/agent/extensions/tiny-tool-shim.json    # configuration
-~/.pi/agent/extensions/tiny-protocol-core.js  # terse protocol helpers
+~/.pi/agent/extensions/lib/tiny-protocol-core.js  # terse protocol helpers
 ~/.pi/agent/extensions/tiny-tool-shim.md      # this document
 ```
 
@@ -173,8 +173,8 @@ After editing config, restart pi or run:
 The parser/normalizer lives in:
 
 ```text
-~/.pi/agent/extensions/tiny-tool-shim-parser.js
-~/.pi/agent/extensions/tiny-protocol-core.js
+~/.pi/agent/extensions/lib/tiny-tool-shim-parser.js
+~/.pi/agent/extensions/lib/tiny-protocol-core.js
 ```
 
 Run the dependency-free smoke tests with:

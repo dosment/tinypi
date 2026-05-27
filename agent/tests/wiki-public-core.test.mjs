@@ -7,7 +7,7 @@ import {
 	lintPublicWiki,
 	parseFrontmatter,
 	validatePublicWikiPage,
-} from "../extensions/wiki-public-core.js";
+} from "../extensions/lib/wiki-public-core.js";
 
 const valid = `---
 title: Example

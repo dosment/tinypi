@@ -6,7 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { memoryPageIssues, summarizeLintIssues } from "./wiki-memory-core.js";
+import { memoryPageIssues, summarizeLintIssues } from "./lib/wiki-memory-core.js";
 import {
 	DEFAULT_CONFIG,
 	MAX_STEPS,
@@ -19,7 +19,7 @@ import {
 	slug,
 	wikiBlock,
 	wikiPageForKind,
-} from "./tight-learning-core.js";
+} from "./lib/tight-learning-core.js";
 
 type LearningMode = "suggest" | "approve" | "auto-memory" | "auto-safe" | "auto";
 type LearningKind = "wiki_memory" | "preference" | "workflow" | "skill_candidate" | "test_fixture" | "note";

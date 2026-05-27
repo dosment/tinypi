@@ -3,7 +3,7 @@ import {
 	filterAvailableTools,
 	isExplicitPlanningToolSet,
 	routeTools,
-} from "../extensions/tiny-tool-router-core.js";
+} from "../extensions/lib/tiny-tool-router-core.js";
 
 const simple = routeTools("thanks", { maxTools: 9 });
 assert.deepEqual(simple.bundles, ["base"]);

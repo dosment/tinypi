@@ -6,8 +6,8 @@ import { mkdir, readdir, readFile, stat, writeFile, appendFile } from "node:fs/p
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, normalize, relative } from "node:path";
-import { findDuplicateLineIssues, formatMemoryLint, memoryPageIssues, normalizedLine, splitSections, summarizeLintIssues } from "./wiki-memory-core.js";
-import { formatPublicWikiLint, lintPublicWiki } from "./wiki-public-core.js";
+import { findDuplicateLineIssues, formatMemoryLint, memoryPageIssues, normalizedLine, splitSections, summarizeLintIssues } from "./lib/wiki-memory-core.js";
+import { formatPublicWikiLint, lintPublicWiki } from "./lib/wiki-public-core.js";
 
 const AGENT_DIR = process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent");
 const MEMORY_WIKI_DIR = join(AGENT_DIR, "memory", "wiki");

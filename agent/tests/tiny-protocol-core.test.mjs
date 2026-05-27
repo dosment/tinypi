@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildTerseProtocolBlock, compactLines, oneLine, tokenEstimate } from "../extensions/tiny-protocol-core.js";
+import { buildTerseProtocolBlock, compactLines, oneLine, tokenEstimate } from "../extensions/lib/tiny-protocol-core.js";
 
 assert.equal(oneLine("  keep\nthis\tshort  "), "keep this short");
 

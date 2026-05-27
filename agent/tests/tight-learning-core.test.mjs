@@ -9,7 +9,7 @@ import {
 	slug,
 	wikiBlock,
 	wikiPageForKind,
-} from "../extensions/tight-learning-core.js";
+} from "../extensions/lib/tight-learning-core.js";
 
 assert.equal(cleanText("  keep\nthis\tcompact  "), "keep this compact");
 assert.equal(cleanText("abcdef", 3), "abc");

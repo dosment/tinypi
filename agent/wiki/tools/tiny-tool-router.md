@@ -18,7 +18,7 @@ Location:
 
 ```text
 ~/.pi/agent/extensions/tiny-tool-router.ts
-~/.pi/agent/extensions/tiny-tool-router-core.js
+~/.pi/agent/extensions/lib/tiny-tool-router-core.js
 ```
 
 ## Purpose

@@ -41,14 +41,17 @@ agent/
   extensions/
     tiny-tool-shim.ts
     tiny-tool-router.ts
-    tiny-tool-router-core.js
-    tiny-protocol-core.js
-    tight-learning-core.js
     tight-web.ts
     wiki-memory.ts
     tight-ask-user.ts
     tight-planning.ts
     tight-learning.ts
+    lib/
+      tiny-tool-router-core.js
+      tiny-protocol-core.js
+      tight-learning-core.js
+      wiki-memory-core.js
+      wiki-public-core.js
   skills/
     tinypi-maintainer/
     wiki-curator/

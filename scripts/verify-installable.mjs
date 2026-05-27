@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
-import { lintPublicWiki } from "../agent/extensions/wiki-public-core.js";
+import { lintPublicWiki } from "../agent/extensions/lib/wiki-public-core.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const required = [
@@ -11,17 +11,17 @@ const required = [
 	"agent/settings.json",
 	"agent/extensions/tiny-tool-shim.ts",
 	"agent/extensions/tiny-tool-router.ts",
-	"agent/extensions/tiny-tool-router-core.js",
-	"agent/extensions/tiny-protocol-core.js",
-	"agent/extensions/tiny-protocol-core.d.ts",
+	"agent/extensions/lib/tiny-tool-router-core.js",
+	"agent/extensions/lib/tiny-protocol-core.js",
+	"agent/extensions/lib/tiny-protocol-core.d.ts",
 	"agent/extensions/tight-web.ts",
 	"agent/extensions/wiki-memory.ts",
-	"agent/extensions/wiki-memory-core.js",
-	"agent/extensions/wiki-public-core.js",
+	"agent/extensions/lib/wiki-memory-core.js",
+	"agent/extensions/lib/wiki-public-core.js",
 	"agent/extensions/tight-ask-user.ts",
 	"agent/extensions/tight-planning.ts",
 	"agent/extensions/tight-learning.ts",
-	"agent/extensions/tight-learning-core.js",
+	"agent/extensions/lib/tight-learning-core.js",
 	"agent/skills/tinypi-maintainer/SKILL.md",
 	"agent/skills/wiki-curator/SKILL.md",
 	"agent/npm/package.json",

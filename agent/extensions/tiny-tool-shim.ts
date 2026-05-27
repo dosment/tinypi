@@ -18,8 +18,8 @@ import {
 	type ToolCall,
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
-import { parseCommand, type ParsedCommand } from "./tiny-tool-shim-parser.js";
-import { buildTerseProtocolBlock, compactLines, type TerseProtocolMode } from "./tiny-protocol-core.js";
+import { parseCommand, type ParsedCommand } from "./lib/tiny-tool-shim-parser.js";
+import { buildTerseProtocolBlock, compactLines, type TerseProtocolMode } from "./lib/tiny-protocol-core.js";
 
 interface TinyToolShimConfig {
 	baseUrl?: string;
