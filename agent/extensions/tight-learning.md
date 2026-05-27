@@ -51,6 +51,16 @@ Applied wiki learnings write to `~/.pi/agent/wiki/`.
 
 Applied skill candidates write to `~/.pi/agent/skills/<skill-name>/SKILL.md`.
 
+## Notifications
+
+Captured learnings are visible in three places:
+
+- the `learn_capture` tool result
+- a TUI notification after capture or auto-apply
+- a footer/status indicator like `learn 3` when pending learnings exist
+
+After agent turns, TinyPi also reminds the user when learnings are pending review. The reminder is throttled to avoid repeated noise.
+
 ## Autonomy Modes
 
 ```text

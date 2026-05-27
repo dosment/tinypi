@@ -205,6 +205,8 @@ Learning records are stored in:
 
 Accepted learnings can be promoted into wiki memory or skills.
 
+When learnings are pending review, TinyPi shows a `learn N` status indicator and can remind the user to run `/learn review`.
+
 ## Wiki Memory
 
 TinyPi uses one canonical Markdown wiki:

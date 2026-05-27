@@ -194,6 +194,18 @@ function formatRecord(record: LearningRecord): string {
 }
 
 export default function tightLearning(pi: ExtensionAPI) {
+	let lastPendingReminder = 0;
+
+	async function pendingCount(): Promise<number> {
+		return (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").length;
+	}
+
+	async function updateLearningStatus(ctx: { ui: { setStatus: (key: string, value: string | undefined) => void; theme: { fg: (color: string, text: string) => string } } }) {
+		const pending = await pendingCount();
+		ctx.ui.setStatus("learning", pending > 0 ? ctx.ui.theme.fg("accent", `learn ${pending}`) : undefined);
+		return pending;
+	}
+
 	pi.on("session_start", () => {
 		const active = pi.getActiveTools();
 		const next = [...active];
@@ -201,6 +213,19 @@ export default function tightLearning(pi: ExtensionAPI) {
 			if (!next.includes(name)) next.push(name);
 		}
 		pi.setActiveTools(next);
+	});
+
+	pi.on("turn_start", async (_event, ctx) => {
+		await updateLearningStatus(ctx);
+	});
+
+	pi.on("agent_end", async (_event, ctx) => {
+		const pending = await updateLearningStatus(ctx);
+		if (!pending || !ctx.hasUI) return;
+		const now = Date.now();
+		if (now - lastPendingReminder < 10 * 60 * 1000) return;
+		lastPendingReminder = now;
+		ctx.ui.notify(`${pending} learning${pending === 1 ? "" : "s"} pending review. Run /learn review.`, "info");
 	});
 
 	pi.on("before_agent_start", async () => {
@@ -224,7 +249,7 @@ export default function tightLearning(pi: ExtensionAPI) {
 			const arg = args.trim();
 			const config = await loadConfig();
 			if (!arg || arg === "status") {
-				const pending = (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").length;
+				const pending = await updateLearningStatus(ctx);
 				ctx.ui.notify(`Learning mode: ${config.mode}\nPending learnings: ${pending}`, "info");
 				return;
 			}
@@ -237,6 +262,7 @@ export default function tightLearning(pi: ExtensionAPI) {
 			if (mode && ["suggest", "approve", "auto-memory", "auto-safe", "auto"].includes(mode)) {
 				config.mode = mode as LearningMode;
 				await saveConfig(config);
+				await updateLearningStatus(ctx);
 				ctx.ui.notify(`Learning mode set to ${mode}`, "info");
 				return;
 			}
@@ -264,7 +290,7 @@ export default function tightLearning(pi: ExtensionAPI) {
 			trigger: Type.Optional(Type.String({ description: "For skill_candidate, when the skill should trigger." })),
 			steps: Type.Optional(Type.Array(Type.String(), { maxItems: MAX_STEPS, description: "For skill_candidate, concise workflow steps." })),
 		}),
-		async execute(_id, params) {
+		async execute(_id, params, _signal, _onUpdate, ctx) {
 			const config = await loadConfig();
 			const kind = params.kind as LearningKind;
 			if (!config.allowKinds.includes(kind)) {
@@ -286,7 +312,15 @@ export default function tightLearning(pi: ExtensionAPI) {
 			await appendJsonl(INBOX_PATH, record);
 			if (shouldAutoApply(config, kind)) {
 				const applied = await applyRecord(record, config);
+				if (ctx.hasUI) {
+					const pending = await updateLearningStatus(ctx);
+					ctx.ui.notify(`Learning auto-applied to ${applied.path}. Pending review: ${pending}`, "info");
+				}
 				return { content: [{ type: "text", text: `Learning captured and auto-applied to ${applied.path}\n\n${formatRecord(applied.record)}` }], details: applied.record };
+			}
+			if (ctx.hasUI) {
+				const pending = await updateLearningStatus(ctx);
+				ctx.ui.notify(`Captured learning pending review. Run /learn review. Pending: ${pending}`, "info");
 			}
 			return { content: [{ type: "text", text: `Learning captured for review.\n\n${formatRecord(record)}` }], details: record };
 		},
@@ -332,6 +366,7 @@ export default function tightLearning(pi: ExtensionAPI) {
 				if (!ok) return { content: [{ type: "text", text: "Learning not applied." }], details: { applied: false, id: record.id } };
 			}
 			const applied = await applyRecord(record, config);
+			if (ctx.hasUI) await updateLearningStatus(ctx);
 			return { content: [{ type: "text", text: `Learning applied to ${applied.path}\n\n${formatRecord(applied.record)}` }], details: applied.record };
 		},
 	});
@@ -345,11 +380,12 @@ export default function tightLearning(pi: ExtensionAPI) {
 			id: Type.String({ description: "Learning ID from learn_capture or learn_review." }),
 			reason: Type.Optional(Type.String({ description: "Short rejection reason." })),
 		}),
-		async execute(_id, params) {
+		async execute(_id, params, _signal, _onUpdate, ctx) {
 			const rejected = await updateInbox(params.id, { status: "rejected" });
 			if (!rejected) return { content: [{ type: "text", text: `Error: learning not found: ${params.id}` }], details: { error: "not found" } };
 			const record = { ...rejected, proposedChange: `${rejected.proposedChange}\n\nRejection reason: ${cleanText(params.reason, 500) || "not specified"}` };
 			await appendJsonl(REJECTED_PATH, record);
+			if (ctx.hasUI) await updateLearningStatus(ctx);
 			return { content: [{ type: "text", text: `Learning rejected.\n\n${formatRecord(record)}` }], details: record };
 		},
 	});

@@ -174,3 +174,4 @@ Behavior:
 - Promotes accepted skill candidates into `~/.pi/agent/skills/<skill-name>/SKILL.md`.
 - Defaults to `approve` mode.
 - Supports opt-in autonomy modes: `suggest`, `approve`, `auto-memory`, `auto-safe`, and `auto`.
+- Shows pending learning count in the TUI status area, notifies after capture/auto-apply, and reminds after agent turns when pending learnings need review.
