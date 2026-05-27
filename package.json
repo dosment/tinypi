@@ -1,0 +1,13 @@
+{
+  "name": "tinypi",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tiny model harness layer for pi.dev",
+  "type": "module",
+  "scripts": {
+    "install:local": "node scripts/install-local.mjs",
+    "install:local:symlink": "node scripts/install-local.mjs --symlink",
+    "test": "npm --prefix agent/npm run test:tiny-tool-shim",
+    "verify": "node scripts/verify-installable.mjs"
+  }
+}

@@ -1,0 +1,17 @@
+# Secrets and local auth
+agent/auth.json
+
+# Runtime/session state
+agent/sessions/
+agent/plans/
+
+# Installed dependencies and generated package internals
+agent/npm/node_modules/
+
+# Vendored local binaries
+agent/bin/
+
+# OS/editor noise
+.DS_Store
+*.swp
+*.tmp

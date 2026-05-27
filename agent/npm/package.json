@@ -1,0 +1,11 @@
+{
+  "name": "pi-extensions",
+  "private": true,
+  "scripts": {
+    "test:tiny-tool-shim": "node ../tests/tiny-tool-shim-parser.test.mjs"
+  },
+  "dependencies": {
+    "pi-tool-display": "^0.4.1",
+    "pi-web-access": "^0.10.7"
+  }
+}
