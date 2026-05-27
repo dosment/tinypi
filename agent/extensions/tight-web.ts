@@ -3,9 +3,8 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { Text } from "@earendil-works/pi-tui";
 
-import { search, type SearchProvider } from "/Users/dan/.pi/agent/npm/node_modules/pi-web-access/gemini-search.ts";
-import { fetchAllContent, type ExtractedContent } from "/Users/dan/.pi/agent/npm/node_modules/pi-web-access/extract.ts";
-import { compactMarkdown, DEFAULT_COMPACT_MAX_CHARS } from "/Users/dan/.pi/agent/npm/node_modules/pi-web-access/compact-markdown.ts";
+import { search, type SearchProvider } from "../npm/node_modules/pi-web-access/gemini-search.ts";
+import { fetchAllContent, type ExtractedContent } from "../npm/node_modules/pi-web-access/extract.ts";
 import {
 	generateId,
 	getResult,
@@ -13,13 +12,14 @@ import {
 	storeResult,
 	type QueryResultData,
 	type StoredSearchData,
-} from "/Users/dan/.pi/agent/npm/node_modules/pi-web-access/storage.ts";
+} from "../npm/node_modules/pi-web-access/storage.ts";
 
 const MAX_QUERIES = 3;
 const DEFAULT_RESULTS = 5;
 const MAX_RESULTS = 8;
 const MAX_INLINE_CHARS = 12000;
 const MAX_STORED_RETURN_CHARS = 30000;
+const DEFAULT_COMPACT_MAX_CHARS = 12000;
 
 type Format = "compact" | "full";
 
@@ -64,6 +64,13 @@ function formatSearchResult(query: string, data: QueryResultData): string {
 	let out = data.answer ? `${data.answer}\n\nSources:\n` : `Sources for ${query}:\n`;
 	out += data.results.map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}`).join("\n");
 	return out;
+}
+
+function compactMarkdown(content: string, options: { maxChars: number }): string {
+	const maxChars = Math.max(0, Math.floor(options.maxChars));
+	if (content.length <= maxChars) return content;
+	const cut = content.slice(0, maxChars).replace(/\s+$/g, "");
+	return `${cut}\n\n[truncated: use get_search_content for full content]`;
 }
 
 function compactForInline(content: string, format: Format, maxChars: number): string {
