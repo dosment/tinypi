@@ -21,6 +21,11 @@ const LEARNING_RE = /\b(learn|learning|lesson|lessons|self[- ]?learn|capture|pen
 const COMPLETE_RE = /\b(complete|finish|done|mark.*done|close.*plan)\b/i;
 const FETCH_STORED_RE = /\b(get_search_content|responseId|stored full content|full content)\b/i;
 
+function mentionsAny(text, names) {
+	const lower = text.toLowerCase();
+	return names.some((name) => lower.includes(name.toLowerCase()));
+}
+
 function addUnique(target, names) {
 	for (const name of names) {
 		if (!target.includes(name)) target.push(name);
@@ -44,35 +49,35 @@ export function detectToolBundles(prompt, options = {}) {
 	const bundles = ["base"];
 	const reasons = [];
 
-	if (CODE_RE.test(text)) {
+	if (CODE_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.code)) {
 		bundles.push("code");
 		reasons.push("code");
 	}
-	if (WEB_RE.test(text)) {
+	if (WEB_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.web)) {
 		bundles.push("web");
 		reasons.push("web");
 	}
-	if (FETCH_STORED_RE.test(text)) {
+	if (FETCH_STORED_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.web_followup)) {
 		bundles.push("web_followup");
 		reasons.push("stored-web");
 	}
-	if (MEMORY_RE.test(text)) {
+	if (MEMORY_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.memory)) {
 		bundles.push("memory");
 		reasons.push("memory");
 	}
-	if (MEMORY_MAINTENANCE_RE.test(text)) {
+	if (MEMORY_MAINTENANCE_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.memory_maintenance)) {
 		bundles.push("memory_maintenance");
 		reasons.push("memory-maintenance");
 	}
-	if (PLANNING_RE.test(text) || (options.autoPlanLongPrompts && text.length > 900)) {
+	if (PLANNING_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.planning) || (options.autoPlanLongPrompts && text.length > 900)) {
 		bundles.push("planning");
 		reasons.push("planning");
 	}
-	if (COMPLETE_RE.test(text) && /\b(plan|planning)\b/i.test(text)) {
+	if ((COMPLETE_RE.test(text) && /\b(plan|planning)\b/i.test(text)) || mentionsAny(text, TOOL_BUNDLES.plan_complete)) {
 		bundles.push("plan_complete");
 		reasons.push("plan-complete");
 	}
-	if (LEARNING_RE.test(text)) {
+	if (LEARNING_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.learning)) {
 		bundles.push("learning");
 		reasons.push("learning");
 	}

@@ -23,10 +23,38 @@ const learning = routeTools("Review pending learnings and set learning mode to a
 assert.ok(learning.bundles.includes("learning"));
 assert.ok(learning.tools.includes("learn_review"));
 
+const learningToolName = routeTools("Why did learn_capture fail when the tool router ran?", { maxTools: 10 });
+assert.ok(learningToolName.bundles.includes("learning"));
+assert.ok(learningToolName.tools.includes("learn_capture"));
+
+const webToolName = routeTools("Why did web_search not become available?", { maxTools: 10 });
+assert.ok(webToolName.bundles.includes("web"));
+assert.ok(webToolName.tools.includes("web_search"));
+
+const fetchToolName = routeTools("Call fetch_content for the best URL", { maxTools: 10 });
+assert.ok(fetchToolName.bundles.includes("web"));
+assert.ok(fetchToolName.tools.includes("fetch_content"));
+
+const memoryToolName = routeTools("Use wiki_remember for this durable preference", { maxTools: 10 });
+assert.ok(memoryToolName.bundles.includes("memory"));
+assert.ok(memoryToolName.tools.includes("wiki_remember"));
+
+const planToolName = routeTools("Use plan_update after the next step", { maxTools: 10 });
+assert.ok(planToolName.bundles.includes("planning"));
+assert.ok(planToolName.tools.includes("plan_update"));
+
+const planCompleteToolName = routeTools("Now call plan_complete", { maxTools: 10 });
+assert.ok(planCompleteToolName.bundles.includes("plan_complete"));
+assert.ok(planCompleteToolName.tools.includes("plan_complete"));
+
 const maintenance = routeTools("Audit wiki memory drift and duplicate entries", { maxTools: 9 });
 assert.ok(maintenance.bundles.includes("memory_maintenance"));
 assert.ok(maintenance.tools.includes("wiki_lint"));
 assert.ok(maintenance.tools.includes("wiki_review"));
+
+const maintenanceToolName = routeTools("Run wiki_lint on memory", { maxTools: 10 });
+assert.ok(maintenanceToolName.bundles.includes("memory_maintenance"));
+assert.ok(maintenanceToolName.tools.includes("wiki_lint"));
 
 const capped = routeTools("Implement code, search web, remember wiki, planning, learning", { maxTools: 5 });
 assert.equal(capped.tools.length, 5);

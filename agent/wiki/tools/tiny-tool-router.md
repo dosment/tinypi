@@ -40,6 +40,14 @@ Maintenance tools such as `wiki_lint`, `wiki_review`, `get_search_content`, and 
 
 Explicit `/planning` mode overrides the router and keeps the read-only planning tool set active.
 
+## Maintainer Notes
+
+Router keyword regexes should catch natural language requests, but literal tool names must be handled separately.
+
+JavaScript `\b` word boundaries do not split on `_`, so a regex looking for `learn` or `capture` will not match inside `learn_capture`. To avoid this class of bug, `tiny-tool-router-core.js` also checks the user's prompt against the literal names in `TOOL_BUNDLES`.
+
+When adding a routed tool with an underscored name, put it in the correct `TOOL_BUNDLES` entry and add a regression test that mentions the literal tool name, such as `wiki_remember`, `plan_update`, or `learn_capture`.
+
 ## Verification
 
 Router classification lives in `tiny-tool-router-core.js` so it can be tested without launching Pi.
