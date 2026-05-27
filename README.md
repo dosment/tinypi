@@ -40,6 +40,7 @@ agent/
   AGENTS.md
   extensions/
     tiny-tool-shim.ts
+    tight-learning-core.js
     tight-web.ts
     wiki-memory.ts
     tight-ask-user.ts
@@ -52,6 +53,7 @@ agent/
     package-lock.json
   tests/
     tiny-tool-shim-parser.test.mjs
+    tight-learning-core.test.mjs
   wiki/
     index.md
     tools/
@@ -230,9 +232,10 @@ It teaches the agent how to maintain this harness: keep changes scoped, update t
 ## Development Checks
 
 ```bash
-cd agent/npm
-npm run test:tiny-tool-shim
+npm test
 ```
+
+This runs the tiny tool shim parser checks and the deterministic `tight-learning` core checks.
 
 Load an extension directly:
 

@@ -7,7 +7,7 @@
   "scripts": {
     "install:local": "node scripts/install-local.mjs",
     "install:local:symlink": "node scripts/install-local.mjs --symlink",
-    "test": "npm --prefix agent/npm run test:tiny-tool-shim",
+    "test": "npm --prefix agent/npm test",
     "verify": "node scripts/verify-installable.mjs"
   }
 }

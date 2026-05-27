@@ -6,6 +6,18 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import {
+	DEFAULT_CONFIG,
+	MAX_STEPS,
+	MAX_TITLE,
+	cleanText,
+	pathAllowed,
+	shouldAutoApply,
+	skillMarkdown,
+	slug,
+	wikiBlock,
+	wikiPageForKind,
+} from "./tight-learning-core.js";
 
 type LearningMode = "suggest" | "approve" | "auto-memory" | "auto-safe" | "auto";
 type LearningKind = "wiki_memory" | "preference" | "workflow" | "skill_candidate" | "test_fixture" | "note";
@@ -42,30 +54,8 @@ const ACCEPTED_PATH = join(LEARNING_DIR, "accepted.jsonl");
 const REJECTED_PATH = join(LEARNING_DIR, "rejected.jsonl");
 const WIKI_DIR = join(AGENT_DIR, "wiki");
 const SKILLS_DIR = join(AGENT_DIR, "skills");
-const MAX_TEXT = 2000;
-const MAX_TITLE = 120;
-const MAX_STEPS = 12;
-
-const DEFAULT_CONFIG: LearningConfig = {
-	mode: "approve",
-	allowKinds: ["wiki_memory", "preference", "workflow", "skill_candidate", "test_fixture", "note"],
-	allowPaths: ["agent/wiki/", "agent/skills/", "agent/tests/", "agent/learning/"],
-	denyPaths: ["agent/auth.json", "agent/sessions/", "agent/plans/", "agent/npm/node_modules/", "agent/bin/"],
-};
 
 const KindSchema = StringEnum(["wiki_memory", "preference", "workflow", "skill_candidate", "test_fixture", "note"]);
-
-function today(): string {
-	return new Date().toISOString().slice(0, 10);
-}
-
-function cleanText(value: unknown, max = MAX_TEXT): string {
-	return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max).trim();
-}
-
-function slug(value: string): string {
-	return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64) || "learned-skill";
-}
 
 function newId(): string {
 	return `learn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -120,29 +110,6 @@ async function updateInbox(id: string, update: Partial<LearningRecord>): Promise
 	return records[index];
 }
 
-function shouldAutoApply(config: LearningConfig, kind: LearningKind): boolean {
-	if (config.mode === "auto") return true;
-	if (config.mode === "auto-safe") return ["wiki_memory", "preference", "workflow", "note", "test_fixture"].includes(kind);
-	if (config.mode === "auto-memory") return ["wiki_memory", "preference", "workflow", "note"].includes(kind);
-	return false;
-}
-
-function wikiPageForKind(kind: LearningKind): string {
-	if (kind === "preference") return "preferences.md";
-	if (kind === "workflow") return "workflows.md";
-	return "facts.md";
-}
-
-function pathAllowed(config: LearningConfig, path: string): boolean {
-	const normalized = path.replace(/\\/g, "/");
-	return config.allowPaths.some((prefix) => normalized.startsWith(prefix)) && !config.denyPaths.some((prefix) => normalized.startsWith(prefix));
-}
-
-function wikiBlock(record: LearningRecord): string {
-	const type = record.kind === "preference" ? "preference" : record.kind === "workflow" ? "workflow" : "project";
-	return `\n## ${today()} — ${record.title}\n\nType: ${type}\nSource: tight-learning\nLearning ID: ${record.id}\n\nLesson: ${record.lesson}\n\nEvidence: ${record.evidence}\n\nApplied change: ${record.proposedChange}\n`;
-}
-
 async function applyWiki(record: LearningRecord, config: LearningConfig): Promise<string> {
 	await mkdir(WIKI_DIR, { recursive: true });
 	const rel = wikiPageForKind(record.kind);
@@ -161,13 +128,6 @@ async function applyWiki(record: LearningRecord, config: LearningConfig): Promis
 		learningId: record.id,
 	}) + "\n", "utf8");
 	return artifactPath;
-}
-
-function skillMarkdown(record: LearningRecord): string {
-	const name = slug(record.skillName || record.title);
-	const trigger = cleanText(record.trigger || record.lesson, 500);
-	const steps = (record.steps?.length ? record.steps : [record.proposedChange]).slice(0, MAX_STEPS);
-	return `---\nname: ${name}\ndescription: ${trigger}\n---\n\n# ${record.title}\n\n## Workflow\n\n${steps.map((step, i) => `${i + 1}. ${cleanText(step, 240)}`).join("\n")}\n\n## Evidence\n\n${record.evidence}\n`;
 }
 
 async function applySkill(record: LearningRecord, config: LearningConfig): Promise<string> {

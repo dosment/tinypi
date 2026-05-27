@@ -175,3 +175,29 @@ Behavior:
 - Defaults to `approve` mode.
 - Supports opt-in autonomy modes: `suggest`, `approve`, `auto-memory`, `auto-safe`, and `auto`.
 - Shows pending learning count in the TUI status area, notifies after capture/auto-apply, and reminds after agent turns when pending learnings need review.
+
+
+## 2026-05-27 — tight-learning core tests
+
+Type: project
+Source: user-request
+
+Added focused tests for deterministic `tight-learning` behavior.
+
+Files:
+
+- `agent/extensions/tight-learning-core.js`: shared helper module for learning config defaults, text normalization, slugging, autonomy decisions, path allow/deny checks, wiki block formatting, and skill Markdown rendering.
+- `agent/tests/tight-learning-core.test.mjs`: Node-based smoke tests for the helper behavior.
+
+Files updated:
+
+- `agent/extensions/tight-learning.ts`: imports shared deterministic helpers.
+- `agent/npm/package.json`: adds `test:tight-learning` and a combined `test` script.
+- `package.json`: root `npm test` now runs all agent npm tests.
+- `scripts/verify-installable.mjs`: verifies the new learning test is part of the installable repo.
+
+Verification:
+
+```bash
+npm test
+```

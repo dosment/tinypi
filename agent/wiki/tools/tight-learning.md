@@ -6,6 +6,7 @@ Location:
 
 ```text
 ~/.pi/agent/extensions/tight-learning.ts
+~/.pi/agent/extensions/tight-learning-core.js
 ```
 
 ## Purpose
@@ -72,3 +73,20 @@ auto         auto-apply all allowed learning kinds
 ```
 
 Use learning only for durable patterns, not temporary task details.
+
+## Verification
+
+The extension keeps deterministic mode, path guard, wiki formatting, and skill rendering helpers in `tight-learning-core.js` so they can be tested without launching a Pi runtime.
+
+Run:
+
+```bash
+npm test
+```
+
+The learning-specific suite is:
+
+```bash
+cd agent/npm
+npm run test:tight-learning
+```

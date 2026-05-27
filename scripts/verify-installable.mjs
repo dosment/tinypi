@@ -14,10 +14,12 @@ const required = [
 	"agent/extensions/tight-ask-user.ts",
 	"agent/extensions/tight-planning.ts",
 	"agent/extensions/tight-learning.ts",
+	"agent/extensions/tight-learning-core.js",
 	"agent/skills/tinypi-maintainer/SKILL.md",
 	"agent/npm/package.json",
 	"agent/npm/package-lock.json",
 	"agent/tests/tiny-tool-shim-parser.test.mjs",
+	"agent/tests/tight-learning-core.test.mjs",
 	"agent/wiki/index.md",
 	"README.md",
 ];
