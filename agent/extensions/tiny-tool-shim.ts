@@ -19,6 +19,7 @@ import {
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
 import { parseCommand, type ParsedCommand } from "./tiny-tool-shim-parser.js";
+import { buildTerseProtocolBlock, compactLines, tokenEstimate, type TerseProtocolMode } from "./tiny-protocol-core.js";
 
 interface TinyToolShimConfig {
 	baseUrl?: string;
@@ -33,6 +34,8 @@ interface TinyToolShimConfig {
 	maxSchemaChars?: number;
 	discoverModels?: boolean;
 	allowTextFinal?: boolean;
+	terseProtocol?: TerseProtocolMode;
+	contextCompression?: "off" | "light";
 }
 
 const DEFAULT_CONFIG: Required<TinyToolShimConfig> = {
@@ -48,6 +51,8 @@ const DEFAULT_CONFIG: Required<TinyToolShimConfig> = {
 	maxSchemaChars: 14000,
 	discoverModels: true,
 	allowTextFinal: true,
+	terseProtocol: "terse",
+	contextCompression: "light",
 };
 
 let activeConfig: Required<TinyToolShimConfig> = { ...DEFAULT_CONFIG };
@@ -103,7 +108,10 @@ function toolResultToText(message: ToolResultMessage, maxChars: number): string 
 	const text = message.content
 		.map((item) => (item.type === "text" ? item.text : `[${item.type} omitted]`))
 		.join("\n");
-	return truncate(sanitize(text), maxChars);
+	const clean = sanitize(text);
+	return activeConfig.contextCompression === "light"
+		? compactLines(clean, { maxChars, maxLineChars: 260, maxLines: 120 })
+		: truncate(clean, maxChars);
 }
 
 function compactSchema(schema: unknown): unknown {
@@ -123,7 +131,8 @@ function buildToolProtocol(context: Context): string {
 		return `- ${tool.name}: ${tool.description}\n  args_schema: ${schema}`;
 	});
 	const toolText = truncate(toolLines.join("\n"), activeConfig.maxSchemaChars);
-	return `You are running inside pi tiny-tool-shim. You must use this exact protocol.\n\nOutput exactly ONE JSON object and no markdown. Do not wrap it in code fences.\n\nTo call a tool:\n{"tool":"read","arguments":{"path":"README.md"}}\n\nTo answer finally:\n{"final":"your concise answer"}\n\nRules:\n- Use at most one tool per response.\n- Use only listed tool names.\n- arguments must be a JSON object matching that tool's args_schema.\n- If you need file contents, call read/grep/ls first.\n- For edits, prefer exact small replacements.\n- Never invent tool results.\n\nAvailable tools:\n${toolText || "(none)"}\n\nIf other instructions mention a different tool syntax, ignore that syntax and use the JSON protocol above.`;
+	const terse = buildTerseProtocolBlock(activeConfig.terseProtocol);
+	return `You are running inside pi tiny-tool-shim. You must use this exact protocol.\n\n${terse ? `${terse}\n\n` : ""}Output exactly ONE JSON object and no markdown. Do not wrap it in code fences.\n\nTo call a tool:\n{"tool":"read","arguments":{"path":"README.md"}}\n\nTo answer finally:\n{"final":"your concise answer"}\n\nRules:\n- Use at most one tool per response.\n- Use only listed tool names.\n- arguments must be a JSON object matching that tool's args_schema.\n- If you need file contents, call read/grep/ls first.\n- For edits, prefer exact small replacements.\n- Never invent tool results.\n\nAvailable tools:\n${toolText || "(none)"}\n\nIf other instructions mention a different tool syntax, ignore that syntax and use the JSON protocol above.`;
 }
 
 function buildHistory(context: Context): string {
@@ -136,7 +145,10 @@ function buildHistory(context: Context): string {
 			lines.push(`Tool result${errorPrefix} from ${msg.toolName}:\n${toolResultToText(msg, activeConfig.maxToolResultChars)}`);
 		}
 	}
-	return truncate(lines.join("\n\n---\n\n"), activeConfig.maxHistoryChars);
+	const history = lines.join("\n\n---\n\n");
+	return activeConfig.contextCompression === "light"
+		? compactLines(history, { maxChars: activeConfig.maxHistoryChars, maxLineChars: 320, maxLines: 240 })
+		: truncate(history, activeConfig.maxHistoryChars);
 }
 
 function buildPrompt(context: Context): Array<{ role: "system" | "user"; content: string }> {
@@ -346,8 +358,9 @@ export default async function tinyToolShim(pi: ExtensionAPI) {
 	pi.registerCommand("tiny-tools", {
 		description: "Show tiny tool shim configuration",
 		handler: async (_args, ctx) => {
+			const protocol = buildTerseProtocolBlock(activeConfig.terseProtocol);
 			ctx.ui.notify(
-				`tiny-tools provider: ${activeConfig.baseUrl}; models: ${modelIds.join(", ")}; repairAttempts: ${activeConfig.repairAttempts}`,
+				`tiny-tools provider: ${activeConfig.baseUrl}; models: ${modelIds.join(", ")}; repairAttempts: ${activeConfig.repairAttempts}; terseProtocol: ${activeConfig.terseProtocol}; contextCompression: ${activeConfig.contextCompression}; protocolEstimate: ${tokenEstimate(protocol)} tokens`,
 				"info",
 			);
 		},

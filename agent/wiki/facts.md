@@ -201,3 +201,38 @@ Verification:
 ```bash
 npm test
 ```
+
+
+## 2026-05-27 — terse protocol for tiny-tool-shim
+
+Type: project
+Source: user-request
+
+Added a "terse protocol" implementation for TinyPi's tiny model provider.
+
+Design:
+
+- Use structured semantic compression instead of "caveman" style.
+- Preserve constraints, negations, source ids, paths, ids, error text, and missing-info behavior.
+- Lightly compact history and tool results before sending them to local tiny models.
+- Keep the behavior configurable through `tiny-tool-shim.json`.
+
+Files:
+
+- `agent/extensions/tiny-protocol-core.js`: deterministic terse protocol and context compaction helpers.
+- `agent/extensions/tiny-protocol-core.d.ts`: TypeScript declarations for the helper module.
+- `agent/tests/tiny-protocol-core.test.mjs`: smoke tests for compaction and protocol rules.
+
+Files updated:
+
+- `agent/extensions/tiny-tool-shim.ts`: injects terse protocol rules and light context compression into the tiny-tools provider prompt path.
+- `agent/extensions/tiny-tool-shim.json`: enables `terseProtocol: "terse"` and `contextCompression: "light"` by default.
+- `agent/npm/package.json`: includes the tiny protocol test in `npm test`.
+- `scripts/verify-installable.mjs`: verifies the helper and tests are part of the installable repo.
+- `README.md` and `agent/wiki/tools/tiny-tool-shim.md`: document the feature and config.
+
+Verification:
+
+```bash
+npm test
+```

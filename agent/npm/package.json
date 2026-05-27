@@ -3,8 +3,9 @@
   "private": true,
   "scripts": {
     "test:tiny-tool-shim": "node ../tests/tiny-tool-shim-parser.test.mjs",
+    "test:tiny-protocol": "node ../tests/tiny-protocol-core.test.mjs",
     "test:tight-learning": "node ../tests/tight-learning-core.test.mjs",
-    "test": "npm run test:tiny-tool-shim && npm run test:tight-learning"
+    "test": "npm run test:tiny-tool-shim && npm run test:tiny-protocol && npm run test:tight-learning"
   },
   "dependencies": {
     "pi-tool-display": "^0.4.1",

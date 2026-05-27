@@ -40,6 +40,7 @@ agent/
   AGENTS.md
   extensions/
     tiny-tool-shim.ts
+    tiny-protocol-core.js
     tight-learning-core.js
     tight-web.ts
     wiki-memory.ts
@@ -53,6 +54,7 @@ agent/
     package-lock.json
   tests/
     tiny-tool-shim-parser.test.mjs
+    tiny-protocol-core.test.mjs
     tight-learning-core.test.mjs
   wiki/
     index.md
@@ -136,6 +138,23 @@ or:
 ```
 
 It then parses, lightly repairs, validates, and converts that text into native pi tool calls.
+
+TinyPi also enables a terse protocol by default for tiny models. This is structured semantic compression, not stylized "caveman" output: the model is told to be concise while preserving constraints, negations, source ids, paths, ids, error text, and missing-info behavior. Tool results and history are lightly compacted before being sent back to the local model.
+
+Configure it in:
+
+```text
+~/.pi/agent/extensions/tiny-tool-shim.json
+```
+
+Relevant options:
+
+```json
+{
+  "terseProtocol": "terse",
+  "contextCompression": "light"
+}
+```
 
 ## Planning Mode
 
@@ -235,7 +254,7 @@ It teaches the agent how to maintain this harness: keep changes scoped, update t
 npm test
 ```
 
-This runs the tiny tool shim parser checks and the deterministic `tight-learning` core checks.
+This runs the tiny tool shim parser checks, terse protocol helper checks, and deterministic `tight-learning` core checks.
 
 Load an extension directly:
 

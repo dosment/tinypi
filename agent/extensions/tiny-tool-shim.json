@@ -15,5 +15,7 @@
   "maxToolResultChars": 6000,
   "maxHistoryChars": 24000,
   "maxSchemaChars": 14000,
-  "allowTextFinal": true
+  "allowTextFinal": true,
+  "terseProtocol": "terse",
+  "contextCompression": "light"
 }

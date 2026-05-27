@@ -9,6 +9,7 @@ It is intended for models like Gemma, small Qwen/Coder models, and other Ollama/
 ```text
 ~/.pi/agent/extensions/tiny-tool-shim.ts      # extension implementation
 ~/.pi/agent/extensions/tiny-tool-shim.json    # configuration
+~/.pi/agent/extensions/tiny-protocol-core.js  # terse protocol helpers
 ~/.pi/agent/extensions/tiny-tool-shim.md      # this document
 ```
 
@@ -68,6 +69,14 @@ Without a shim, pi treats that as assistant text, not as a real tool call.
 ## Protocol given to the model
 
 The model is instructed to output exactly one JSON object and no markdown.
+
+TinyPi also adds a terse protocol block by default. This is not "caveman" style. It is structured semantic compression:
+
+- be concise
+- preserve constraints, negations, source ids, paths, ids, and errors
+- say `MISSING` when information is unavailable
+- do not guess beyond context
+- use structured output when requested
 
 To call a tool:
 
@@ -139,7 +148,9 @@ Current example:
   "maxToolResultChars": 6000,
   "maxHistoryChars": 24000,
   "maxSchemaChars": 14000,
-  "allowTextFinal": true
+  "allowTextFinal": true,
+  "terseProtocol": "terse",
+  "contextCompression": "light"
 }
 ```
 
@@ -158,6 +169,8 @@ Current example:
 | `maxHistoryChars` | Max chars of conversation history sent to the tiny model. |
 | `maxSchemaChars` | Max chars of tool schema descriptions sent to the tiny model. |
 | `allowTextFinal` | If parsing fails, allow raw text as final output instead of hard failing. |
+| `terseProtocol` | `off`, `terse`, or `strict`. Adds compact model-facing rules while preserving constraints and missing-info behavior. |
+| `contextCompression` | `off` or `light`. `light` compacts tool/history text while prioritizing constraints, source ids, paths, errors, and status lines. |
 
 After editing config, restart pi or run:
 
@@ -181,16 +194,17 @@ The parser/normalizer lives in:
 
 ```text
 ~/.pi/agent/extensions/tiny-tool-shim-parser.js
+~/.pi/agent/extensions/tiny-protocol-core.js
 ```
 
-Run the dependency-free parser smoke tests with:
+Run the dependency-free smoke tests with:
 
 ```bash
 cd ~/.pi/agent/npm
-npm run test:tiny-tool-shim
+npm test
 ```
 
-The tests cover common tiny-model output shapes: fenced JSON, prose before JSON, smart quotes, trailing commas, bare keys, final answers, alias fields, and invalid non-JSON output.
+The tests cover common tiny-model output shapes plus terse protocol/context compression helper behavior.
 
 ## Recommended practices for tiny models
 
