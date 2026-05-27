@@ -151,3 +151,26 @@ Installer updates:
 - `scripts/install-local.mjs` now installs `agent/skills/`.
 - `scripts/verify-installable.mjs` verifies the maintainer skill exists.
 - `README.md` documents the skill.
+
+
+## 2026-05-27 — tight-learning extension
+
+Type: project
+Source: user-request
+
+Added `tight-learning`, a self-learning loop for TinyPi.
+
+Files:
+
+- `agent/extensions/tight-learning.ts`: registers `/learn` plus `learn_capture`, `learn_review`, `learn_apply`, and `learn_reject`.
+- `agent/extensions/tight-learning.json`: default learning autonomy config.
+- `agent/extensions/tight-learning.md`: extension docs.
+- `agent/wiki/tools/tight-learning.md`: wiki tool docs.
+
+Behavior:
+
+- Captures durable learnings into `~/.pi/agent/learning/inbox.jsonl`.
+- Applies accepted memory/workflow/preference learnings into `~/.pi/agent/wiki/`.
+- Promotes accepted skill candidates into `~/.pi/agent/skills/<skill-name>/SKILL.md`.
+- Defaults to `approve` mode.
+- Supports opt-in autonomy modes: `suggest`, `approve`, `auto-memory`, `auto-safe`, and `auto`.

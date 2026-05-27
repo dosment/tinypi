@@ -15,6 +15,7 @@ The current harness provides:
 - Markdown wiki memory
 - structured user clarification
 - Markdown-backed planning mode
+- opt-in self-learning
 - compact tool display configuration
 
 ## Relationship To pi.dev
@@ -43,6 +44,7 @@ agent/
     wiki-memory.ts
     tight-ask-user.ts
     tight-planning.ts
+    tight-learning.ts
   skills/
     tinypi-maintainer/
   npm/
@@ -164,6 +166,44 @@ The active plan is stored as Markdown:
 ```
 
 Explicit planning mode is read-only: `edit` and `write` are blocked, and `bash` is restricted to read-only inspection commands.
+
+## Self-Learning
+
+TinyPi includes `tight-learning`, a Hermes-inspired learning loop constrained for tiny models.
+
+Commands:
+
+```text
+/learn status
+/learn review
+/learn mode approve
+/learn mode auto-memory
+/learn mode auto-safe
+/learn mode auto
+```
+
+Learning tools:
+
+```text
+learn_capture
+learn_review
+learn_apply
+learn_reject
+```
+
+Approval is the default. Silent application is opt-in through:
+
+```text
+~/.pi/agent/extensions/tight-learning.json
+```
+
+Learning records are stored in:
+
+```text
+~/.pi/agent/learning/
+```
+
+Accepted learnings can be promoted into wiki memory or skills.
 
 ## Wiki Memory
 

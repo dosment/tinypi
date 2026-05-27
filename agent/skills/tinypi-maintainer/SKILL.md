@@ -59,6 +59,7 @@ If adding repo content that users need, update:
 - Prefer deterministic parsers, compact prompts, and explicit guardrails.
 - Do not rely on tiny models to infer hidden state.
 - For durable learning or memory, propose first and require user approval before writes.
+- If `tight-learning` autonomy is enabled, respect its configured mode and path/kind allowlists.
 - Keep active tools narrow when possible.
 
 ## Git Checklist

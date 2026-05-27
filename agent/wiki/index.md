@@ -15,3 +15,4 @@
 - `tools/tight-ask-user.md`: structured clarification tool for tiny models.
 - `tools/pi-tool-display.md`: compact TUI rendering for built-in tool calls and diffs.
 - `tools/tight-planning.md`: tiny-model planning mode and Markdown-backed active plan.
+- `tools/tight-learning.md`: self-learning inbox, approval flow, and skill promotion.

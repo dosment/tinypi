@@ -1,0 +1,356 @@
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { StringEnum } from "@earendil-works/pi-ai";
+import { Text } from "@earendil-works/pi-tui";
+import { Type } from "typebox";
+
+type LearningMode = "suggest" | "approve" | "auto-memory" | "auto-safe" | "auto";
+type LearningKind = "wiki_memory" | "preference" | "workflow" | "skill_candidate" | "test_fixture" | "note";
+type LearningStatus = "pending" | "accepted" | "rejected";
+
+interface LearningConfig {
+	mode: LearningMode;
+	allowKinds: LearningKind[];
+	allowPaths: string[];
+	denyPaths: string[];
+}
+
+interface LearningRecord {
+	id: string;
+	ts: string;
+	kind: LearningKind;
+	title: string;
+	lesson: string;
+	evidence: string;
+	proposedChange: string;
+	status: LearningStatus;
+	applied?: boolean;
+	artifactPath?: string;
+	skillName?: string;
+	trigger?: string;
+	steps?: string[];
+}
+
+const AGENT_DIR = join(homedir(), ".pi", "agent");
+const EXTENSION_CONFIG_PATH = join(AGENT_DIR, "extensions", "tight-learning.json");
+const LEARNING_DIR = join(AGENT_DIR, "learning");
+const INBOX_PATH = join(LEARNING_DIR, "inbox.jsonl");
+const ACCEPTED_PATH = join(LEARNING_DIR, "accepted.jsonl");
+const REJECTED_PATH = join(LEARNING_DIR, "rejected.jsonl");
+const WIKI_DIR = join(AGENT_DIR, "wiki");
+const SKILLS_DIR = join(AGENT_DIR, "skills");
+const MAX_TEXT = 2000;
+const MAX_TITLE = 120;
+const MAX_STEPS = 12;
+
+const DEFAULT_CONFIG: LearningConfig = {
+	mode: "approve",
+	allowKinds: ["wiki_memory", "preference", "workflow", "skill_candidate", "test_fixture", "note"],
+	allowPaths: ["agent/wiki/", "agent/skills/", "agent/tests/", "agent/learning/"],
+	denyPaths: ["agent/auth.json", "agent/sessions/", "agent/plans/", "agent/npm/node_modules/", "agent/bin/"],
+};
+
+const KindSchema = StringEnum(["wiki_memory", "preference", "workflow", "skill_candidate", "test_fixture", "note"]);
+
+function today(): string {
+	return new Date().toISOString().slice(0, 10);
+}
+
+function cleanText(value: unknown, max = MAX_TEXT): string {
+	return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max).trim();
+}
+
+function slug(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64) || "learned-skill";
+}
+
+function newId(): string {
+	return `learn_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function ensureLearningDir(): Promise<void> {
+	await mkdir(LEARNING_DIR, { recursive: true });
+}
+
+async function loadConfig(): Promise<LearningConfig> {
+	try {
+		const raw = await readFile(EXTENSION_CONFIG_PATH, "utf8");
+		const parsed = JSON.parse(raw) as Partial<LearningConfig>;
+		return {
+			mode: parsed.mode ?? DEFAULT_CONFIG.mode,
+			allowKinds: parsed.allowKinds ?? DEFAULT_CONFIG.allowKinds,
+			allowPaths: parsed.allowPaths ?? DEFAULT_CONFIG.allowPaths,
+			denyPaths: parsed.denyPaths ?? DEFAULT_CONFIG.denyPaths,
+		};
+	} catch {
+		return { ...DEFAULT_CONFIG };
+	}
+}
+
+async function saveConfig(config: LearningConfig): Promise<void> {
+	await mkdir(join(AGENT_DIR, "extensions"), { recursive: true });
+	await writeFile(EXTENSION_CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", "utf8");
+}
+
+async function appendJsonl(path: string, record: unknown): Promise<void> {
+	await ensureLearningDir();
+	await appendFile(path, JSON.stringify(record) + "\n", "utf8");
+}
+
+async function readJsonl(path: string): Promise<LearningRecord[]> {
+	if (!existsSync(path)) return [];
+	const raw = await readFile(path, "utf8");
+	return raw.split("\n").filter(Boolean).map((line) => JSON.parse(line) as LearningRecord);
+}
+
+async function writeJsonl(path: string, records: LearningRecord[]): Promise<void> {
+	await ensureLearningDir();
+	await writeFile(path, records.map((r) => JSON.stringify(r)).join("\n") + (records.length ? "\n" : ""), "utf8");
+}
+
+async function updateInbox(id: string, update: Partial<LearningRecord>): Promise<LearningRecord | null> {
+	const records = await readJsonl(INBOX_PATH);
+	const index = records.findIndex((r) => r.id === id);
+	if (index === -1) return null;
+	records[index] = { ...records[index], ...update };
+	await writeJsonl(INBOX_PATH, records);
+	return records[index];
+}
+
+function shouldAutoApply(config: LearningConfig, kind: LearningKind): boolean {
+	if (config.mode === "auto") return true;
+	if (config.mode === "auto-safe") return ["wiki_memory", "preference", "workflow", "note", "test_fixture"].includes(kind);
+	if (config.mode === "auto-memory") return ["wiki_memory", "preference", "workflow", "note"].includes(kind);
+	return false;
+}
+
+function wikiPageForKind(kind: LearningKind): string {
+	if (kind === "preference") return "preferences.md";
+	if (kind === "workflow") return "workflows.md";
+	return "facts.md";
+}
+
+function pathAllowed(config: LearningConfig, path: string): boolean {
+	const normalized = path.replace(/\\/g, "/");
+	return config.allowPaths.some((prefix) => normalized.startsWith(prefix)) && !config.denyPaths.some((prefix) => normalized.startsWith(prefix));
+}
+
+function wikiBlock(record: LearningRecord): string {
+	const type = record.kind === "preference" ? "preference" : record.kind === "workflow" ? "workflow" : "project";
+	return `\n## ${today()} — ${record.title}\n\nType: ${type}\nSource: tight-learning\nLearning ID: ${record.id}\n\nLesson: ${record.lesson}\n\nEvidence: ${record.evidence}\n\nApplied change: ${record.proposedChange}\n`;
+}
+
+async function applyWiki(record: LearningRecord, config: LearningConfig): Promise<string> {
+	await mkdir(WIKI_DIR, { recursive: true });
+	const rel = wikiPageForKind(record.kind);
+	const artifactPath = `agent/wiki/${rel}`;
+	if (!pathAllowed(config, artifactPath)) throw new Error(`Learning path not allowed: ${artifactPath}`);
+	const path = join(WIKI_DIR, rel);
+	if (!existsSync(path)) await writeFile(path, `# ${rel.replace(/\.md$/, "")}\n\n`, "utf8");
+	await appendFile(path, wikiBlock(record), "utf8");
+	await appendFile(join(WIKI_DIR, "log.jsonl"), JSON.stringify({
+		ts: new Date().toISOString(),
+		scope: "global",
+		kind: record.kind,
+		path: rel,
+		text: record.proposedChange,
+		source: "tight-learning",
+		learningId: record.id,
+	}) + "\n", "utf8");
+	return artifactPath;
+}
+
+function skillMarkdown(record: LearningRecord): string {
+	const name = slug(record.skillName || record.title);
+	const trigger = cleanText(record.trigger || record.lesson, 500);
+	const steps = (record.steps?.length ? record.steps : [record.proposedChange]).slice(0, MAX_STEPS);
+	return `---\nname: ${name}\ndescription: ${trigger}\n---\n\n# ${record.title}\n\n## Workflow\n\n${steps.map((step, i) => `${i + 1}. ${cleanText(step, 240)}`).join("\n")}\n\n## Evidence\n\n${record.evidence}\n`;
+}
+
+async function applySkill(record: LearningRecord, config: LearningConfig): Promise<string> {
+	const name = slug(record.skillName || record.title);
+	const artifactPath = `agent/skills/${name}/SKILL.md`;
+	if (!pathAllowed(config, artifactPath)) throw new Error(`Learning path not allowed: ${artifactPath}`);
+	const dir = join(SKILLS_DIR, name);
+	await mkdir(dir, { recursive: true });
+	await writeFile(join(dir, "SKILL.md"), skillMarkdown({ ...record, skillName: name }), "utf8");
+	return artifactPath;
+}
+
+async function applyRecord(record: LearningRecord, config: LearningConfig): Promise<{ path: string; record: LearningRecord }> {
+	const path = record.kind === "skill_candidate" ? await applySkill(record, config) : await applyWiki(record, config);
+	const applied = { ...record, status: "accepted" as const, applied: true, artifactPath: path };
+	await updateInbox(record.id, applied);
+	await appendJsonl(ACCEPTED_PATH, applied);
+	return { path, record: applied };
+}
+
+function formatRecord(record: LearningRecord): string {
+	const skill = record.skillName ? `\nSkill: ${record.skillName}` : "";
+	return `ID: ${record.id}\nKind: ${record.kind}\nStatus: ${record.status}\nTitle: ${record.title}${skill}\nLesson: ${record.lesson}\nEvidence: ${record.evidence}\nProposed change: ${record.proposedChange}`;
+}
+
+export default function tightLearning(pi: ExtensionAPI) {
+	pi.on("session_start", () => {
+		const active = pi.getActiveTools();
+		const next = [...active];
+		for (const name of ["learn_capture", "learn_review", "learn_apply", "learn_reject"]) {
+			if (!next.includes(name)) next.push(name);
+		}
+		pi.setActiveTools(next);
+	});
+
+	pi.on("before_agent_start", async () => {
+		const config = await loadConfig();
+		return {
+			message: {
+				customType: "tight-learning-context",
+				display: false,
+				content: `Learning mode: ${config.mode}. Capture durable lessons with learn_capture. Approval is default unless mode explicitly permits auto-apply. Prefer skill_candidate only for repeated procedural workflows.`,
+			},
+		};
+	});
+
+	pi.registerCommand("learn", {
+		description: "Review or configure TinyPi learning",
+		getArgumentCompletions: (prefix) => {
+			const options = ["status", "review", "mode suggest", "mode approve", "mode auto-memory", "mode auto-safe", "mode auto"];
+			return options.filter((o) => o.startsWith(prefix)).map((value) => ({ value, label: value }));
+		},
+		handler: async (args, ctx) => {
+			const arg = args.trim();
+			const config = await loadConfig();
+			if (!arg || arg === "status") {
+				const pending = (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").length;
+				ctx.ui.notify(`Learning mode: ${config.mode}\nPending learnings: ${pending}`, "info");
+				return;
+			}
+			if (arg === "review") {
+				const pending = (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").slice(-8);
+				ctx.ui.notify(pending.length ? pending.map(formatRecord).join("\n\n---\n\n") : "No pending learnings.", "info");
+				return;
+			}
+			const mode = arg.match(/^mode\s+(.+)$/)?.[1];
+			if (mode && ["suggest", "approve", "auto-memory", "auto-safe", "auto"].includes(mode)) {
+				config.mode = mode as LearningMode;
+				await saveConfig(config);
+				ctx.ui.notify(`Learning mode set to ${mode}`, "info");
+				return;
+			}
+			ctx.ui.notify("Usage: /learn status | /learn review | /learn mode <suggest|approve|auto-memory|auto-safe|auto>", "warning");
+		},
+	});
+
+	pi.registerTool({
+		name: "learn_capture",
+		label: "Capture Learning",
+		description: "Capture a durable lesson or skill candidate from experience. Approval is default; auto-apply only happens when configured.",
+		promptSnippet: "Capture durable lessons or skill candidates after useful experience.",
+		promptGuidelines: [
+			"Use learn_capture for durable lessons from successful tasks, repeated corrections, or reusable workflows.",
+			"Do not capture temporary task details.",
+			"Use skill_candidate only for repeated procedural workflows, not facts.",
+		],
+		parameters: Type.Object({
+			kind: KindSchema,
+			title: Type.String({ description: "Short title for the learning." }),
+			lesson: Type.String({ description: "What should be learned." }),
+			evidence: Type.String({ description: "Why this learning is justified." }),
+			proposedChange: Type.String({ description: "What should be persisted or changed." }),
+			skillName: Type.Optional(Type.String({ description: "For skill_candidate, proposed skill name." })),
+			trigger: Type.Optional(Type.String({ description: "For skill_candidate, when the skill should trigger." })),
+			steps: Type.Optional(Type.Array(Type.String(), { maxItems: MAX_STEPS, description: "For skill_candidate, concise workflow steps." })),
+		}),
+		async execute(_id, params) {
+			const config = await loadConfig();
+			const kind = params.kind as LearningKind;
+			if (!config.allowKinds.includes(kind)) {
+				return { content: [{ type: "text", text: `Error: learning kind not allowed: ${kind}` }], details: { error: "kind not allowed" } };
+			}
+			const record: LearningRecord = {
+				id: newId(),
+				ts: new Date().toISOString(),
+				kind,
+				title: cleanText(params.title, MAX_TITLE) || "Untitled learning",
+				lesson: cleanText(params.lesson),
+				evidence: cleanText(params.evidence),
+				proposedChange: cleanText(params.proposedChange),
+				status: "pending",
+				skillName: cleanText(params.skillName, 80) || undefined,
+				trigger: cleanText(params.trigger, 500) || undefined,
+				steps: Array.isArray(params.steps) ? params.steps.map((s) => cleanText(s, 240)).filter(Boolean).slice(0, MAX_STEPS) : undefined,
+			};
+			await appendJsonl(INBOX_PATH, record);
+			if (shouldAutoApply(config, kind)) {
+				const applied = await applyRecord(record, config);
+				return { content: [{ type: "text", text: `Learning captured and auto-applied to ${applied.path}\n\n${formatRecord(applied.record)}` }], details: applied.record };
+			}
+			return { content: [{ type: "text", text: `Learning captured for review.\n\n${formatRecord(record)}` }], details: record };
+		},
+		renderCall(args, theme) {
+			const title = cleanText((args as { title?: unknown }).title, 80);
+			return new Text(theme.fg("toolTitle", theme.bold("learn_capture ")) + theme.fg("accent", title || "(untitled)"), 0, 0);
+		},
+	});
+
+	pi.registerTool({
+		name: "learn_review",
+		label: "Review Learnings",
+		description: "Review pending learning records.",
+		promptSnippet: "Review pending captured learnings before applying or rejecting.",
+		parameters: Type.Object({
+			limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "Max records. Defaults to 8." })),
+		}),
+		async execute(_id, params) {
+			const limit = typeof params.limit === "number" ? Math.max(1, Math.min(20, params.limit)) : 8;
+			const pending = (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").slice(-limit);
+			return { content: [{ type: "text", text: pending.length ? pending.map(formatRecord).join("\n\n---\n\n") : "No pending learnings." }], details: { count: pending.length } };
+		},
+	});
+
+	pi.registerTool({
+		name: "learn_apply",
+		label: "Apply Learning",
+		description: "Apply one pending learning. In approve mode, asks the user before writing.",
+		promptSnippet: "Apply a pending learning only when appropriate.",
+		parameters: Type.Object({
+			id: Type.String({ description: "Learning ID from learn_capture or learn_review." }),
+		}),
+		async execute(_id, params, _signal, _onUpdate, ctx) {
+			const records = await readJsonl(INBOX_PATH);
+			const record = records.find((r) => r.id === params.id && r.status === "pending");
+			if (!record) return { content: [{ type: "text", text: `Error: pending learning not found: ${params.id}` }], details: { error: "not found" } };
+			const config = await loadConfig();
+			if (!shouldAutoApply(config, record.kind)) {
+				if (!ctx.hasUI) {
+					return { content: [{ type: "text", text: `Approval required before applying:\n\n${formatRecord(record)}` }], details: { needsApproval: true, id: record.id } };
+				}
+				const ok = await ctx.ui.confirm("Apply learning?", formatRecord(record));
+				if (!ok) return { content: [{ type: "text", text: "Learning not applied." }], details: { applied: false, id: record.id } };
+			}
+			const applied = await applyRecord(record, config);
+			return { content: [{ type: "text", text: `Learning applied to ${applied.path}\n\n${formatRecord(applied.record)}` }], details: applied.record };
+		},
+	});
+
+	pi.registerTool({
+		name: "learn_reject",
+		label: "Reject Learning",
+		description: "Reject one pending learning and keep an audit record.",
+		promptSnippet: "Reject a captured learning when it is wrong, stale, or not durable.",
+		parameters: Type.Object({
+			id: Type.String({ description: "Learning ID from learn_capture or learn_review." }),
+			reason: Type.Optional(Type.String({ description: "Short rejection reason." })),
+		}),
+		async execute(_id, params) {
+			const rejected = await updateInbox(params.id, { status: "rejected" });
+			if (!rejected) return { content: [{ type: "text", text: `Error: learning not found: ${params.id}` }], details: { error: "not found" } };
+			const record = { ...rejected, proposedChange: `${rejected.proposedChange}\n\nRejection reason: ${cleanText(params.reason, 500) || "not specified"}` };
+			await appendJsonl(REJECTED_PATH, record);
+			return { content: [{ type: "text", text: `Learning rejected.\n\n${formatRecord(record)}` }], details: record };
+		},
+	});
+}
