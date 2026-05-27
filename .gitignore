@@ -5,6 +5,7 @@ agent/auth.json
 agent/sessions/
 agent/plans/
 agent/learning/
+agent/memory/
 
 # Installed dependencies and generated package internals
 agent/npm/node_modules/

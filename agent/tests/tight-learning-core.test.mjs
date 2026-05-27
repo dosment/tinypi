@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
 	DEFAULT_CONFIG,
 	cleanText,
+	memoryArtifactPathForKind,
 	pathAllowed,
 	shouldAutoApply,
 	skillMarkdown,
@@ -23,7 +24,8 @@ assert.equal(shouldAutoApply({ ...DEFAULT_CONFIG, mode: "auto-safe" }, "test_fix
 assert.equal(shouldAutoApply({ ...DEFAULT_CONFIG, mode: "auto-safe" }, "skill_candidate"), false);
 assert.equal(shouldAutoApply({ ...DEFAULT_CONFIG, mode: "auto" }, "skill_candidate"), true);
 
-assert.equal(pathAllowed(DEFAULT_CONFIG, "agent/wiki/facts.md"), true);
+assert.equal(pathAllowed(DEFAULT_CONFIG, "agent/memory/wiki/facts.md"), true);
+assert.equal(pathAllowed(DEFAULT_CONFIG, "agent/wiki/facts.md"), false);
 assert.equal(pathAllowed(DEFAULT_CONFIG, "agent/skills/tinypi-maintainer/SKILL.md"), true);
 assert.equal(pathAllowed(DEFAULT_CONFIG, "agent/auth.json"), false);
 assert.equal(pathAllowed(DEFAULT_CONFIG, "agent/sessions/run.jsonl"), false);
@@ -32,6 +34,7 @@ assert.equal(pathAllowed(DEFAULT_CONFIG, "README.md"), false);
 assert.equal(wikiPageForKind("preference"), "preferences.md");
 assert.equal(wikiPageForKind("workflow"), "workflows.md");
 assert.equal(wikiPageForKind("note"), "facts.md");
+assert.equal(memoryArtifactPathForKind("workflow"), "agent/memory/wiki/workflows.md");
 
 const record = {
 	id: "learn_test",

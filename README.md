@@ -2,7 +2,7 @@
 
 TinyPi is a userland harness layer for [pi.dev](https://pi.dev), adapted for small/local models.
 
-It is not intended to be a fork of pi.dev. TinyPi is an overlay: extensions, docs, tests, wiki memory, and local configuration that sit on top of an existing pi installation.
+It is not intended to be a fork of pi.dev. TinyPi is an overlay: extensions, docs, tests, local memory support, and local configuration that sit on top of an existing pi installation.
 
 ## Why This Exists
 
@@ -61,13 +61,19 @@ agent/
     tools/
 ```
 
-Canonical wiki:
+Shipped wiki docs:
 
 ```text
 agent/wiki/
 ```
 
-Do not commit local auth, sessions, installed dependencies, or generated plans.
+Local runtime memory:
+
+```text
+agent/memory/wiki/
+```
+
+Do not commit local auth, sessions, installed dependencies, generated plans, learning inboxes, or local memory.
 
 ## Install
 
@@ -91,6 +97,12 @@ agent/extensions/*     -> ~/.pi/agent/extensions/
 agent/skills/*         -> ~/.pi/agent/skills/
 agent/wiki/*           -> ~/.pi/agent/wiki/
 agent/npm/package.json -> ~/.pi/agent/npm/
+```
+
+It also creates this local-only memory directory without replacing existing memory:
+
+```text
+~/.pi/agent/memory/wiki/
 ```
 
 It also runs `npm install` in:
@@ -224,19 +236,25 @@ Learning records are stored in:
 ~/.pi/agent/learning/
 ```
 
-Accepted learnings can be promoted into wiki memory or skills.
+Accepted learnings can be promoted into local wiki memory or skills.
 
 When learnings are pending review, TinyPi shows a `learn N` status indicator and can remind the user to run `/learn review`.
 
 ## Wiki Memory
 
-TinyPi uses one canonical Markdown wiki:
+TinyPi ships public reference docs in:
 
 ```text
 ~/.pi/agent/wiki/
 ```
 
-The `project`, `global`, and `both` memory scopes are accepted for compatibility, but all resolve to the canonical agent wiki in this harness.
+Runtime memory is local-only and stored in:
+
+```text
+~/.pi/agent/memory/wiki/
+```
+
+The `project`, `global`, and `both` memory scopes are accepted for compatibility, but all resolve to local memory in this harness. The shipped `wiki/` directory should stay barebones and public-safe.
 
 ## Skills
 

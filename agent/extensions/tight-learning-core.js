@@ -5,7 +5,7 @@ export const MAX_STEPS = 12;
 export const DEFAULT_CONFIG = {
 	mode: "approve",
 	allowKinds: ["wiki_memory", "preference", "workflow", "skill_candidate", "test_fixture", "note"],
-	allowPaths: ["agent/wiki/", "agent/skills/", "agent/tests/", "agent/learning/"],
+	allowPaths: ["agent/memory/wiki/", "agent/skills/", "agent/tests/", "agent/learning/"],
 	denyPaths: ["agent/auth.json", "agent/sessions/", "agent/plans/", "agent/npm/node_modules/", "agent/bin/"],
 };
 
@@ -32,6 +32,10 @@ export function wikiPageForKind(kind) {
 	if (kind === "preference") return "preferences.md";
 	if (kind === "workflow") return "workflows.md";
 	return "facts.md";
+}
+
+export function memoryArtifactPathForKind(kind) {
+	return `agent/memory/wiki/${wikiPageForKind(kind)}`;
 }
 
 export function pathAllowed(config, path) {

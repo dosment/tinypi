@@ -11,6 +11,7 @@ import {
 	MAX_STEPS,
 	MAX_TITLE,
 	cleanText,
+	memoryArtifactPathForKind,
 	pathAllowed,
 	shouldAutoApply,
 	skillMarkdown,
@@ -46,13 +47,13 @@ interface LearningRecord {
 	steps?: string[];
 }
 
-const AGENT_DIR = join(homedir(), ".pi", "agent");
+const AGENT_DIR = process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent");
 const EXTENSION_CONFIG_PATH = join(AGENT_DIR, "extensions", "tight-learning.json");
 const LEARNING_DIR = join(AGENT_DIR, "learning");
 const INBOX_PATH = join(LEARNING_DIR, "inbox.jsonl");
 const ACCEPTED_PATH = join(LEARNING_DIR, "accepted.jsonl");
 const REJECTED_PATH = join(LEARNING_DIR, "rejected.jsonl");
-const WIKI_DIR = join(AGENT_DIR, "wiki");
+const MEMORY_WIKI_DIR = join(AGENT_DIR, "memory", "wiki");
 const SKILLS_DIR = join(AGENT_DIR, "skills");
 
 const KindSchema = StringEnum(["wiki_memory", "preference", "workflow", "skill_candidate", "test_fixture", "note"]);
@@ -111,14 +112,14 @@ async function updateInbox(id: string, update: Partial<LearningRecord>): Promise
 }
 
 async function applyWiki(record: LearningRecord, config: LearningConfig): Promise<string> {
-	await mkdir(WIKI_DIR, { recursive: true });
+	await mkdir(MEMORY_WIKI_DIR, { recursive: true });
 	const rel = wikiPageForKind(record.kind);
-	const artifactPath = `agent/wiki/${rel}`;
+	const artifactPath = memoryArtifactPathForKind(record.kind);
 	if (!pathAllowed(config, artifactPath)) throw new Error(`Learning path not allowed: ${artifactPath}`);
-	const path = join(WIKI_DIR, rel);
+	const path = join(MEMORY_WIKI_DIR, rel);
 	if (!existsSync(path)) await writeFile(path, `# ${rel.replace(/\.md$/, "")}\n\n`, "utf8");
 	await appendFile(path, wikiBlock(record), "utf8");
-	await appendFile(join(WIKI_DIR, "log.jsonl"), JSON.stringify({
+	await appendFile(join(MEMORY_WIKI_DIR, "log.jsonl"), JSON.stringify({
 		ts: new Date().toISOString(),
 		scope: "global",
 		kind: record.kind,

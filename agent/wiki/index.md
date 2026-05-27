@@ -1,11 +1,14 @@
-# Global Wiki Index
+# TinyPi Built-In Wiki
 
-- preferences.md: User preferences and style.
-- decisions.md: Durable decisions.
-- workflows.md: Reusable workflows.
-- facts.md: Stable facts.
-- glossary.md: Terms and definitions.
-- inbox.md: Unsorted approved memories.
+This directory contains public TinyPi reference docs that ship with the repository.
+
+User and project memory is local-only and lives at:
+
+```text
+~/.pi/agent/memory/wiki/
+```
+
+Runtime memory files are intentionally not committed to GitHub.
 
 ## Tool Documentation
 

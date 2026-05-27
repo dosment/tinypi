@@ -16,15 +16,17 @@ It is designed for small models by avoiding vague hidden memory and large contex
 
 ## Memory Location
 
-Canonical wiki:
+Local runtime memory:
 
 ```txt
-~/.pi/agent/wiki/
+~/.pi/agent/memory/wiki/
 ```
 
-The `scope` parameter remains accepted for compatibility, but all scopes resolve to this single canonical wiki. This avoids duplicate project/global memory trees for the tiny-model harness.
+The `scope` parameter remains accepted for compatibility, but all scopes resolve to this single local memory wiki. This avoids duplicate project/global memory trees for the tiny-model harness.
 
-Default pages are created automatically:
+The repository also ships public reference docs in `~/.pi/agent/wiki/`. Those docs are not used for private memory writes.
+
+Local memory pages are created automatically:
 
 ```txt
 index.md
@@ -135,7 +137,7 @@ Behavior:
 
 - asks the user for confirmation before writing
 - writes to the appropriate Markdown page
-- appends an audit entry to `log.jsonl`
+- appends an audit entry to local `log.jsonl`
 
 ## Tiny Model Policy
 

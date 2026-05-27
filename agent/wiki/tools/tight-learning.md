@@ -48,7 +48,7 @@ The design is inspired by Hermes-style self-improvement, but constrained for tin
 ~/.pi/agent/learning/rejected.jsonl
 ```
 
-Applied wiki learnings write to `~/.pi/agent/wiki/`.
+Applied wiki learnings write to local memory at `~/.pi/agent/memory/wiki/`.
 
 Applied skill candidates write to `~/.pi/agent/skills/<skill-name>/SKILL.md`.
 

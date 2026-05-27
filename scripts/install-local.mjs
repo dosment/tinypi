@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, symlinkSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,6 +64,26 @@ function installNpmPackage() {
 	}
 }
 
+function ensureLocalMemoryWiki() {
+	const memoryWiki = join(targetAgent, "memory", "wiki");
+	ensureDir(memoryWiki);
+	const defaults = {
+		"index.md": "# Local Memory Wiki Index\n\n- preferences.md: User preferences and style.\n- decisions.md: Durable decisions.\n- workflows.md: Reusable workflows.\n- facts.md: Stable facts.\n- glossary.md: Terms and definitions.\n- inbox.md: Unsorted approved memories.\n",
+		"preferences.md": "# Preferences\n\n",
+		"decisions.md": "# Decisions\n\n",
+		"workflows.md": "# Workflows\n\n",
+		"facts.md": "# Facts\n\n",
+		"glossary.md": "# Glossary\n\n",
+		"inbox.md": "# Inbox\n\nApproved memories that have not been curated into a stable page yet.\n\n",
+		"log.jsonl": "",
+	};
+	for (const [file, content] of Object.entries(defaults)) {
+		const path = join(memoryWiki, file);
+		if (!existsSync(path)) writeFileSync(path, content, "utf8");
+	}
+	log("ensured local memory/wiki");
+}
+
 function listInstalledExtensions() {
 	const dir = join(targetAgent, "extensions");
 	if (!existsSync(dir)) return [];
@@ -74,6 +94,7 @@ ensureDir(targetAgent);
 log(`installing to ${targetAgent}`);
 
 for (const [relativePath, type] of items) copyOrLink(relativePath, type);
+ensureLocalMemoryWiki();
 installNpmPackage();
 
 log("installed extensions:");

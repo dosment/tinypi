@@ -7,7 +7,8 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, normalize, relative } from "node:path";
 
-const WIKI_DIR = join(homedir(), ".pi", "agent", "wiki");
+const AGENT_DIR = process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent");
+const MEMORY_WIKI_DIR = join(AGENT_DIR, "memory", "wiki");
 const MAX_SEARCH_RESULTS = 5;
 const MAX_SNIPPET_CHARS = 900;
 const MAX_READ_CHARS = 8000;
@@ -51,7 +52,7 @@ function normalizeKind(value: unknown): MemoryKind {
 }
 
 function rootsForScope(scope: Scope): Array<{ scope: Exclude<Scope, "both">; root: string }> {
-	return [{ scope: scope === "project" ? "project" : "global", root: WIKI_DIR }];
+	return [{ scope: scope === "project" ? "project" : "global", root: MEMORY_WIKI_DIR }];
 }
 
 function safeRelPath(input: string): string | null {
@@ -70,7 +71,7 @@ function isMarkdownFile(path: string): boolean {
 async function ensureWikiRoot(root: string, scope: Exclude<Scope, "both">): Promise<void> {
 	await mkdir(root, { recursive: true });
 	const defaults: Record<string, string> = {
-		"index.md": `# ${scope === "global" ? "Global" : "Project"} Wiki Index\n\n- preferences.md: User preferences and style.\n- decisions.md: Durable decisions.\n- workflows.md: Reusable workflows.\n- facts.md: Stable facts.\n- glossary.md: Terms and definitions.\n- inbox.md: Unsorted approved memories.\n`,
+		"index.md": "# Local Memory Wiki Index\n\n- preferences.md: User preferences and style.\n- decisions.md: Durable decisions.\n- workflows.md: Reusable workflows.\n- facts.md: Stable facts.\n- glossary.md: Terms and definitions.\n- inbox.md: Unsorted approved memories.\n",
 		"preferences.md": "# Preferences\n\n",
 		"decisions.md": "# Decisions\n\n",
 		"workflows.md": "# Workflows\n\n",
@@ -185,7 +186,7 @@ function memoryBlock(text: string, kind: MemoryKind, source: string): string {
 }
 
 async function appendMemory(scope: Exclude<Scope, "both">, kind: MemoryKind, text: string, source: string): Promise<{ path: string; relPath: string }> {
-	const root = WIKI_DIR;
+	const root = MEMORY_WIKI_DIR;
 	await ensureWikiRoot(root, scope);
 	const relPath = targetPageForKind(kind);
 	const path = join(root, relPath);
