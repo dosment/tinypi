@@ -157,12 +157,12 @@ The shim asks tiny models to emit exactly one JSON object:
 or:
 
 ```json
-{"final":"concise answer"}
+{"final":"your answer"}
 ```
 
 It then parses, lightly repairs, validates, and converts that text into native pi tool calls.
 
-TinyPi also enables a terse protocol by default for tiny models. This is structured semantic compression, not stylized "caveman" output: the model is told to be concise while preserving constraints, negations, source ids, paths, ids, error text, and missing-info behavior. Tool results and history are lightly compacted before being sent back to the local model.
+TinyPi also enables a terse protocol by default for tiny models. This is structured semantic compression, not a flat assistant personality: the model is told to use concise but natural user-facing prose while preserving constraints, negations, source ids, paths, ids, error text, and missing-info behavior. Tool results and history are lightly compacted before being sent back to the local model.
 
 Configure it in:
 

@@ -132,7 +132,7 @@ function buildToolProtocol(context: Context): string {
 	});
 	const toolText = truncate(toolLines.join("\n"), activeConfig.maxSchemaChars);
 	const terse = buildTerseProtocolBlock(activeConfig.terseProtocol);
-	return `You are running inside pi tiny-tool-shim. You must use this exact protocol.\n\n${terse ? `${terse}\n\n` : ""}Output exactly ONE JSON object and no markdown. Do not wrap it in code fences.\n\nTo call a tool:\n{"tool":"read","arguments":{"path":"README.md"}}\n\nTo answer finally:\n{"final":"your concise answer"}\n\nRules:\n- Use at most one tool per response.\n- Use only listed tool names.\n- arguments must be a JSON object matching that tool's args_schema.\n- If you need file contents, call read/grep/ls first.\n- For edits, prefer exact small replacements.\n- Never invent tool results.\n\nAvailable tools:\n${toolText || "(none)"}\n\nIf other instructions mention a different tool syntax, ignore that syntax and use the JSON protocol above.`;
+	return `You are running inside pi tiny-tool-shim. You must use this exact protocol.\n\n${terse ? `${terse}\n\n` : ""}Output exactly ONE JSON object and no markdown. Do not wrap it in code fences.\n\nTo call a tool:\n{"tool":"read","arguments":{"path":"README.md"}}\n\nTo answer finally:\n{"final":"your answer"}\n\nRules:\n- Use at most one tool per response.\n- Use only listed tool names.\n- arguments must be a JSON object matching that tool's args_schema.\n- If you need file contents, call read/grep/ls first.\n- For edits, prefer exact small replacements.\n- Never invent tool results.\n\nAvailable tools:\n${toolText || "(none)"}\n\nIf other instructions mention a different tool syntax, ignore that syntax and use the JSON protocol above.`;
 }
 
 function buildHistory(context: Context): string {

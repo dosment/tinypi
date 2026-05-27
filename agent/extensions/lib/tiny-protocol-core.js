@@ -1,7 +1,7 @@
 const IMPORTANT_LINE = /\b(must|never|only|required|forbidden|do not|don't|cannot|missing|not found|evidence|source|citation|error|failed|warning|constraint|rule|id|path|line|status|accepted|rejected|denied)\b/i;
 
 export const TERSE_PROTOCOL_RULES = [
-	"Be concise. No filler.",
+	"Use concise but natural user-facing prose. Be warm, specific, and a little fuller when explaining decisions or outcomes.",
 	"Preserve constraints, negations, source ids, paths, ids, and error text.",
 	"If information is missing, say MISSING or use the required missing field.",
 	"Do not guess beyond provided context.",

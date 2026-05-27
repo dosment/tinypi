@@ -60,9 +60,10 @@ Without a shim, pi treats that as assistant text, not as a real tool call.
 
 The model is instructed to output exactly one JSON object and no markdown.
 
-TinyPi also adds a terse protocol block by default. This is not "caveman" style. It is structured semantic compression:
+TinyPi also adds a terse protocol block by default. This is not "caveman" style and should not flatten the assistant's personality. It is structured semantic compression:
 
-- be concise
+- use concise but natural user-facing prose
+- be warm, specific, and a little fuller when explaining decisions or outcomes
 - preserve constraints, negations, source ids, paths, ids, and errors
 - say `MISSING` when information is unavailable
 - do not guess beyond context
