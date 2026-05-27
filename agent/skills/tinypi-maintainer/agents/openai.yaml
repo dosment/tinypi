@@ -1,0 +1,4 @@
+interface:
+  display_name: "TinyPi Maintainer"
+  short_description: "Maintain the TinyPi harness repo."
+  default_prompt: "Use the TinyPi maintainer workflow to make a scoped harness change, update the wiki, run verification, and avoid committing local runtime state."

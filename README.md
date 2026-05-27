@@ -43,6 +43,8 @@ agent/
     wiki-memory.ts
     tight-ask-user.ts
     tight-planning.ts
+  skills/
+    tinypi-maintainer/
   npm/
     package.json
     package-lock.json
@@ -80,6 +82,7 @@ The installer copies TinyPi into your pi config directory:
 
 ```text
 agent/extensions/*     -> ~/.pi/agent/extensions/
+agent/skills/*         -> ~/.pi/agent/skills/
 agent/wiki/*           -> ~/.pi/agent/wiki/
 agent/npm/package.json -> ~/.pi/agent/npm/
 ```
@@ -171,6 +174,16 @@ TinyPi uses one canonical Markdown wiki:
 ```
 
 The `project`, `global`, and `both` memory scopes are accepted for compatibility, but all resolve to the canonical agent wiki in this harness.
+
+## Skills
+
+TinyPi includes a repo maintainer skill:
+
+```text
+agent/skills/tinypi-maintainer/
+```
+
+It teaches the agent how to maintain this harness: keep changes scoped, update the wiki, run checks, preserve the overlay model, and avoid committing local runtime state.
 
 ## Development Checks
 

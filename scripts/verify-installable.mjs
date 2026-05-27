@@ -13,6 +13,7 @@ const required = [
 	"agent/extensions/wiki-memory.ts",
 	"agent/extensions/tight-ask-user.ts",
 	"agent/extensions/tight-planning.ts",
+	"agent/skills/tinypi-maintainer/SKILL.md",
 	"agent/npm/package.json",
 	"agent/npm/package-lock.json",
 	"agent/tests/tiny-tool-shim-parser.test.mjs",

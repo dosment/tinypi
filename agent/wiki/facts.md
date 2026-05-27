@@ -132,3 +132,22 @@ PI_CODING_AGENT_DIR=/private/tmp/tinypi-install-test npm run install:local
 PI_CODING_AGENT_DIR=/private/tmp/tinypi-install-test PI_OFFLINE=1 ./agent/npm/node_modules/.bin/pi --list-models tiny-tools
 npm --prefix /private/tmp/tinypi-install-test/npm run test:tiny-tool-shim
 ```
+
+
+## 2026-05-27 — tinypi-maintainer skill
+
+Type: project
+Source: user-request
+
+Added `tinypi-maintainer`, an installable skill for maintaining the TinyPi harness repo.
+
+Files:
+
+- `agent/skills/tinypi-maintainer/SKILL.md`: maintainer workflow for scoped edits, wiki updates, validation, installer awareness, and secret-safe git hygiene.
+- `agent/skills/tinypi-maintainer/agents/openai.yaml`: UI metadata for the skill.
+
+Installer updates:
+
+- `scripts/install-local.mjs` now installs `agent/skills/`.
+- `scripts/verify-installable.mjs` verifies the maintainer skill exists.
+- `README.md` documents the skill.

@@ -14,6 +14,7 @@ const items = [
 	["AGENTS.md", "file"],
 	["settings.json", "file"],
 	["extensions", "dir"],
+	["skills", "dir"],
 	["wiki", "dir"],
 	["tests", "dir"],
 ];
