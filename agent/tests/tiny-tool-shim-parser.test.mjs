@@ -44,13 +44,13 @@ const cases = [
 	},
 	{
 		name: "tool_args alias",
-		input: '{"tool":"wiki_remember","tool_args":{"text":"TinyPi was created by Dan for tiny LLM models.","kind":"fact","scope":"project"}}',
-		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi was created by Dan for tiny LLM models.", kind: "fact", scope: "project" } },
+		input: '{"tool":"wiki_remember","tool_args":{"text":"TinyPi supports tiny LLM models.","kind":"fact","scope":"project"}}',
+		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi supports tiny LLM models.", kind: "fact", scope: "project" } },
 	},
 	{
 		name: "tool_input alias",
-		input: '{"tool":"wiki_search","tool_input":{"query":"TinyPi creator"}}',
-		expect: { kind: "tool", name: "wiki_search", arguments: { query: "TinyPi creator" } },
+		input: '{"tool":"wiki_search","tool_input":{"query":"TinyPi docs"}}',
+		expect: { kind: "tool", name: "wiki_search", arguments: { query: "TinyPi docs" } },
 	},
 	{
 		name: "params alias",
@@ -79,8 +79,8 @@ const cases = [
 	},
 	{
 		name: "nested argument wrapper",
-		input: '{"tool":"wiki_remember","arguments":{"tool_args":{"text":"TinyPi was created by Dan.","kind":"fact"}}}',
-		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi was created by Dan.", kind: "fact" } },
+		input: '{"tool":"wiki_remember","arguments":{"tool_args":{"text":"TinyPi supports tiny models.","kind":"fact"}}}',
+		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi supports tiny models.", kind: "fact" } },
 	},
 	{
 		name: "final_answer alias",

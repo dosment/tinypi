@@ -227,7 +227,7 @@ Remember a global preference:
 
 ```json
 {
-  "text": "Dan prefers short, directive tool descriptions for 2B-14B models.",
+  "text": "The user prefers short, directive tool descriptions for 2B-14B models.",
   "kind": "preference",
   "scope": "global"
 }

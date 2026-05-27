@@ -1,10 +1,10 @@
 # TinyPi Install Portability Fix Plan
 
-> **For Hermes:** Use `subagent-driven-development` to implement this plan task-by-task. Preserve Dan's unrelated dirty working-tree changes.
+> **For Hermes:** Use `subagent-driven-development` to implement this plan task-by-task. Preserve unrelated dirty working-tree changes.
 
-**Goal:** Make TinyPi install cleanly on arbitrary macOS/Linux `pi.dev` setups without Dan-specific paths, destructive overwrites, or hidden local assumptions.
+**Goal:** Make TinyPi install cleanly on arbitrary macOS/Linux `pi.dev` setups without developer-specific paths, destructive overwrites, or hidden local assumptions.
 
-**Architecture:** Keep TinyPi as an overlay. The installer copies or symlinks **TinyPi-owned files only**, preserves existing user `pi` config/state, installs npm dependencies into `~/.pi/agent/npm`, and verifies extension loading from a temporary install. Runtime imports must be package-relative, never hardcoded to `/Users/dan/...` or another developer-local path.
+**Architecture:** Keep TinyPi as an overlay. The installer copies or symlinks **TinyPi-owned files only**, preserves existing user `pi` config/state, installs npm dependencies into `~/.pi/agent/npm`, and verifies extension loading from a temporary install. Runtime imports must be package-relative, never hardcoded to `/Users/example/...` or another developer-local path.
 
 **Tech Stack:** Node/npm, ESM scripts, TypeScript TinyPi extensions, `pi.dev` agent runtime, macOS/Linux shell environments.
 
@@ -14,8 +14,8 @@
 
 - **Overlay only:** TinyPi must not fork, replace, or globally mutate upstream `pi.dev` runtime files outside TinyPi-owned paths.
 - **No destructive overwrites:** Existing user auth, sessions, plans, memory, model state, and unrelated settings must survive install.
-- **Portable paths:** No `/Users/dan/...`, repo-absolute imports, or assumptions about where the source repo lives.
-- **Temp-install verification:** Verification must prove a clean install works from an isolated target, not just Dan's live `~/.pi`.
+- **Portable paths:** No `/Users/example/...`, repo-absolute imports, or assumptions about where the source repo lives.
+- **Temp-install verification:** Verification must prove a clean install works from an isolated target, not just a developer's live `~/.pi`.
 - **TinyPi-owned scope:** Installer may manage only the files/directories explicitly owned by TinyPi.
 
 ## Target Layout
@@ -60,7 +60,7 @@ PI_CODING_AGENT_DIR=/tmp/tinypi-install-test npm run install:local
 - A temp install into a nonexistent directory succeeds.
 - A second install into the same temp directory succeeds without deleting local memory or unrelated files.
 - Runtime extension imports resolve from the installed package layout.
-- `grep`/scan finds no hardcoded Dan-local paths in runtime code or install scripts.
+- `grep`/scan finds no hardcoded developer-local paths in runtime code or install scripts.
 - Documentation explains install target, overlay behavior, preservation rules, and temp verification.
 
 ---
@@ -88,7 +88,7 @@ PI_CODING_AGENT_DIR=/tmp/tinypi-install-test npm run install:local
 **Verification:**
 
 ```bash
-grep -R "/Users/dan\|/home/dan\|/home/tony" scripts agent/extensions package.json README.md
+grep -R "/Users/example\|/home/example" scripts agent/extensions package.json README.md
 ```
 
 Expected: no runtime/install dependency on developer-local paths. Documentation references are acceptable only if clearly labeled as examples.
@@ -234,7 +234,7 @@ Expected: target npm package exists and has installed dependencies.
 **Verification:**
 
 ```bash
-grep -R "/Users/dan\|/Users/\|/home/" agent/extensions scripts || true
+grep -R "/Users/example\|/Users/\|/home/" agent/extensions scripts || true
 npm test
 ```
 
@@ -312,7 +312,7 @@ rm -rf /tmp/tinypi-final-test
 PI_CODING_AGENT_DIR=/tmp/tinypi-final-test npm run install:local
 PI_CODING_AGENT_DIR=/tmp/tinypi-final-test npm run install:local
 npm --prefix /tmp/tinypi-final-test/npm run test:tiny-tool-shim
-grep -R "/Users/dan\|/Users/\|/home/" scripts agent/extensions package.json README.md || true
+grep -R "/Users/example\|/Users/\|/home/" scripts agent/extensions package.json README.md || true
 ```
 
 **Expected:**
@@ -330,7 +330,7 @@ grep -R "/Users/dan\|/Users/\|/home/" scripts agent/extensions package.json READ
   - **Guardrail:** Replace only manifest-owned files/directories deterministically.
 - **Risk:** Merging `settings.json` incorrectly could break user config.
   - **Guardrail:** Preserve unknown keys; consider writing a TinyPi sidecar config if merge semantics are unclear.
-- **Risk:** Verification passes on Dan's machine but fails elsewhere.
+- **Risk:** Verification passes on one developer's machine but fails elsewhere.
   - **Guardrail:** Temp install must use a fresh target and package-relative imports.
 - **Risk:** Symlink mode hides missing copy/install behavior.
   - **Guardrail:** Always test plain copy mode before release.
