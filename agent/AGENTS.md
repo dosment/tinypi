@@ -13,3 +13,9 @@ Do not write memory silently. Use `wiki_remember` only for durable facts, prefer
 Do not read the whole wiki. Search first, then use `wiki_read` only for the relevant page or section.
 
 For ordinary one-off coding tasks, do not call the wiki unless memory is relevant.
+
+## Tool Policy
+
+TinyPi uses an automatic tool router. Keep active tools narrow and let the router expose code, web, memory, planning, or learning tools based on the user's request.
+
+`/planning` is the only TinyPi slash command. Use plain-language requests for learning review, memory work, web research, and configuration checks.

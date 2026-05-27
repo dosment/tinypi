@@ -82,3 +82,19 @@ When answering from memory:
 ## Public Repo Boundary
 
 Repository changes may update `agent/wiki/tools/*.md` or `agent/wiki/index.md` as public docs. Private memory belongs under `agent/memory/wiki/` and is ignored by Git.
+
+Public wiki pages should use compact Obsidian-style YAML frontmatter with:
+
+```yaml
+---
+title: Page Title
+type: index | tool-reference
+status: public
+audience: tiny-model, maintainer, user
+tags:
+  - tinypi
+updated: YYYY-MM-DD
+---
+```
+
+Do not place private user/project memory in public frontmatter.

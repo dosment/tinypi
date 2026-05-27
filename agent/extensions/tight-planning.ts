@@ -163,15 +163,6 @@ export default function tightPlanning(pi: ExtensionAPI) {
 	let planningMode = false;
 	let previousTools: string[] | null = null;
 
-	function ensurePlanToolsActive() {
-		const active = pi.getActiveTools();
-		const next = [...active];
-		for (const tool of PLAN_TOOLS) {
-			if (!next.includes(tool)) next.push(tool);
-		}
-		pi.setActiveTools(next);
-	}
-
 	function enterPlanning(ctx?: ExtensionContext) {
 		if (!planningMode) previousTools = pi.getActiveTools();
 		planningMode = true;
@@ -183,15 +174,10 @@ export default function tightPlanning(pi: ExtensionAPI) {
 	function leavePlanning(ctx?: ExtensionContext) {
 		planningMode = false;
 		if (previousTools?.length) pi.setActiveTools(previousTools);
-		else ensurePlanToolsActive();
 		previousTools = null;
 		ctx?.ui.setStatus("planning", undefined);
 		ctx?.ui.notify("Planning mode disabled.", "info");
 	}
-
-	pi.on("session_start", () => {
-		ensurePlanToolsActive();
-	});
 
 	pi.on("before_agent_start", async () => {
 		const plan = await readPlan();

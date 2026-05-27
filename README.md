@@ -40,6 +40,8 @@ agent/
   AGENTS.md
   extensions/
     tiny-tool-shim.ts
+    tiny-tool-router.ts
+    tiny-tool-router-core.js
     tiny-protocol-core.js
     tight-learning-core.js
     tight-web.ts
@@ -56,6 +58,9 @@ agent/
   tests/
     tiny-tool-shim-parser.test.mjs
     tiny-protocol-core.test.mjs
+    tiny-tool-router-core.test.mjs
+    wiki-public-core.test.mjs
+    wiki-memory-core.test.mjs
     tight-learning-core.test.mjs
   wiki/
     index.md
@@ -130,6 +135,8 @@ Then start pi and try:
 /planning status
 ```
 
+TinyPi keeps the user command surface intentionally small. `/planning` is the only TinyPi slash command; tools, memory, web access, and learning are selected automatically from the user's plain-language request.
+
 ## Tiny Tool Shim
 
 `tiny-tool-shim` registers a `tiny-tools` provider for OpenAI-compatible local endpoints such as Ollama:
@@ -169,6 +176,18 @@ Relevant options:
 }
 ```
 
+## Tool Router
+
+TinyPi includes an automatic tool router so tiny models do not see every tool schema on every turn.
+
+The router has no slash command. Before each agent turn it inspects the user's prompt and activates a compact bundle such as:
+
+```text
+base, code, web, memory, planning, learning
+```
+
+Maintenance tools like `wiki_lint`, `wiki_review`, `learn_apply`, `learn_reject`, `get_search_content`, and `plan_complete` are only exposed for prompts that need them. Explicit `/planning` mode overrides the router and keeps its read-only planning tool set active.
+
 ## Planning Mode
 
 TinyPi includes `/planning`, a Claude Code-like planning mode adapted for tiny models.
@@ -205,15 +224,11 @@ Explicit planning mode is read-only: `edit` and `write` are blocked, and `bash` 
 
 TinyPi includes `tight-learning`, a Hermes-inspired learning loop constrained for tiny models.
 
-Commands:
+There is no `/learn` command. Ask naturally, for example:
 
 ```text
-/learn status
-/learn review
-/learn mode approve
-/learn mode auto-memory
-/learn mode auto-safe
-/learn mode auto
+review pending learnings
+set learning mode to auto-memory
 ```
 
 Learning tools:
@@ -239,7 +254,7 @@ Learning records are stored in:
 
 Accepted learnings can be promoted into local wiki memory or skills.
 
-When learnings are pending review, TinyPi shows a `learn N` status indicator and can remind the user to run `/learn review`.
+When learnings are pending review, TinyPi shows a `learn N` status indicator and can remind the user to ask TinyPi to review pending learnings.
 
 ## Wiki Memory
 
@@ -281,7 +296,7 @@ It teaches the agent how to maintain local wiki memory in the Karpathy-style LLM
 npm test
 ```
 
-This runs the tiny tool shim parser checks, terse protocol helper checks, and deterministic `tight-learning` core checks.
+This runs the tiny tool shim parser checks, terse protocol helper checks, deterministic tool router checks, public wiki frontmatter/index checks, memory wiki lint checks, and deterministic `tight-learning` core checks.
 
 Load an extension directly:
 

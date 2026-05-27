@@ -1,3 +1,15 @@
+---
+title: Tiny Tool Shim for pi
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - provider
+  - tool-calling
+updated: 2026-05-27
+---
+
 # Tiny Tool Shim for pi
 
 `tiny-tool-shim` is a pi extension that makes small/local models better at using tools.
@@ -41,17 +53,7 @@ Start pi with one of them:
 pi --model tiny-tools/gemma4:e4b-mlx
 ```
 
-Recommended tool set for tiny models:
-
-```bash
-pi --model tiny-tools/gemma4:e4b-mlx --tools read,ls,grep,edit
-```
-
-Add `bash` only when needed:
-
-```bash
-pi --model tiny-tools/gemma4:e4b-mlx --tools read,ls,grep,edit,bash
-```
+TinyPi's tool router automatically keeps the active tool set small. You normally do not need to pass `--tools` manually.
 
 ## Why this exists
 
@@ -178,16 +180,6 @@ After editing config, restart pi or run:
 /reload
 ```
 
-## Built-in command
-
-Inside pi:
-
-```text
-/tiny-tools
-```
-
-Shows current shim configuration and registered model IDs.
-
 ## Smoke Tests
 
 The parser/normalizer lives in:
@@ -208,15 +200,9 @@ The tests cover common tiny-model output shapes plus terse protocol/context comp
 
 ## Recommended practices for tiny models
 
-### 1. Keep active tools small
+### 1. Let the router keep active tools small
 
-Good default:
-
-```text
-read,ls,grep,edit
-```
-
-Avoid enabling every tool unless needed.
+Avoid enabling every tool manually. The router exposes code, web, memory, planning, and learning tools only when the prompt calls for them.
 
 ### 2. Prefer inspection before edits
 

@@ -19,7 +19,7 @@ import {
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
 import { parseCommand, type ParsedCommand } from "./tiny-tool-shim-parser.js";
-import { buildTerseProtocolBlock, compactLines, tokenEstimate, type TerseProtocolMode } from "./tiny-protocol-core.js";
+import { buildTerseProtocolBlock, compactLines, type TerseProtocolMode } from "./tiny-protocol-core.js";
 
 interface TinyToolShimConfig {
 	baseUrl?: string;
@@ -353,16 +353,5 @@ export default async function tinyToolShim(pi: ExtensionAPI) {
 			maxTokens: activeConfig.maxTokens,
 		})),
 		streamSimple: streamTinyTools,
-	});
-
-	pi.registerCommand("tiny-tools", {
-		description: "Show tiny tool shim configuration",
-		handler: async (_args, ctx) => {
-			const protocol = buildTerseProtocolBlock(activeConfig.terseProtocol);
-			ctx.ui.notify(
-				`tiny-tools provider: ${activeConfig.baseUrl}; models: ${modelIds.join(", ")}; repairAttempts: ${activeConfig.repairAttempts}; terseProtocol: ${activeConfig.terseProtocol}; contextCompression: ${activeConfig.contextCompression}; protocolEstimate: ${tokenEstimate(protocol)} tokens`,
-				"info",
-			);
-		},
 	});
 }

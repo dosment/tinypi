@@ -1,3 +1,15 @@
+---
+title: Wiki Memory Extension
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - wiki
+  - memory
+updated: 2026-05-27
+---
+
 # Wiki Memory Extension
 
 Long-term Markdown memory for pi, designed for tiny models.
@@ -96,13 +108,16 @@ Behavior:
 
 Read-only mechanical checker for wiki health.
 
-Checks for duplicate headings, oversized pages/sections, missing `Type:` or `Source:`, duplicate long lines, and overgrown inbox.
+For local memory, checks for duplicate headings, oversized pages/sections, missing `Type:` or `Source:`, duplicate long lines, and overgrown inbox.
+
+For the shipped public wiki, checks required Obsidian-style frontmatter, allowed page types, `updated` date shape, and whether every public page is listed in `agent/wiki/index.md`.
 
 Parameters:
 
 ```ts
 {
-  scope?: "project" | "global" | "both"
+  scope?: "project" | "global" | "both",
+  target?: "memory" | "public" | "all"
 }
 ```
 
@@ -140,6 +155,7 @@ Behavior:
 - asks the user for confirmation before writing
 - writes to the appropriate Markdown page
 - appends an audit entry to local `log.jsonl`
+- automatically lints local memory after the write and warns only if non-low issues appear
 
 ## Tiny Model Policy
 

@@ -1,3 +1,15 @@
+---
+title: Tight Ask User Extension
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - ask-user
+  - clarification
+updated: 2026-05-27
+---
+
 # Tight Ask User Extension
 
 Structured clarification tool for tiny models.

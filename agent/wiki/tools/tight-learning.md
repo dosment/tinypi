@@ -1,3 +1,15 @@
+---
+title: Tight Learning Extension
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - learning
+  - memory
+updated: 2026-05-27
+---
+
 # Tight Learning Extension
 
 TinyPi self-learning loop for tiny models.
@@ -21,22 +33,14 @@ The design is inspired by Hermes-style self-improvement, but constrained for tin
 - allow explicit opt-in silent application
 - keep all learning inspectable and versionable
 
-## Commands
+## User Interface
 
-```text
-/learn status
-/learn review
-/learn mode suggest
-/learn mode approve
-/learn mode auto-memory
-/learn mode auto-safe
-/learn mode auto
-```
+`tight-learning` has no slash command. TinyPi's tool router exposes learning tools only when the user asks in plain language, such as `review pending learnings` or `set learning mode to auto-memory`.
 
 ## Tools
 
 - `learn_capture`: capture a durable lesson or skill candidate.
-- `learn_review`: list pending learnings.
+- `learn_review`: list pending learnings, report learning mode, or set mode when explicitly requested.
 - `learn_apply`: apply a pending learning.
 - `learn_reject`: reject a pending learning.
 
@@ -51,6 +55,8 @@ The design is inspired by Hermes-style self-improvement, but constrained for tin
 Applied wiki learnings write to local memory at `~/.pi/agent/memory/wiki/`.
 
 Applied skill candidates write to `~/.pi/agent/skills/<skill-name>/SKILL.md`.
+
+After applying a wiki learning, TinyPi lints the affected local memory page and only warns the user when non-low issues appear.
 
 ## Notifications
 

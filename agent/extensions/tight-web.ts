@@ -84,13 +84,6 @@ function formatFetched(result: ExtractedContent, responseId: string, format: For
 export default function tightWeb(pi: ExtensionAPI) {
 	pi.on("session_start", (_event, ctx) => {
 		restoreFromSession(ctx);
-		// Prefer these tight replacements over the verbose pi-web-access surfaces.
-		const active = pi.getActiveTools().map((t) => t.name);
-		const next = active.filter((name) => name !== "code_search");
-		for (const name of ["web_search", "fetch_content", "get_search_content"]) {
-			if (!next.includes(name)) next.push(name);
-		}
-		pi.setActiveTools(next);
 	});
 
 	pi.registerTool({

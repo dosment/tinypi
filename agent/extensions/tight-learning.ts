@@ -6,6 +6,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { memoryPageIssues, summarizeLintIssues } from "./wiki-memory-core.js";
 import {
 	DEFAULT_CONFIG,
 	MAX_STEPS,
@@ -131,6 +132,13 @@ async function applyWiki(record: LearningRecord, config: LearningConfig): Promis
 	return artifactPath;
 }
 
+async function lintAppliedWikiPage(relPath: string): Promise<Array<{ level: "high" | "medium" | "low"; text: string }>> {
+	const path = join(MEMORY_WIKI_DIR, relPath);
+	if (!existsSync(path)) return [];
+	const content = await readFile(path, "utf8");
+	return memoryPageIssues({ scope: "global", relPath, content }).filter((issue) => issue.level !== "low");
+}
+
 async function applySkill(record: LearningRecord, config: LearningConfig): Promise<string> {
 	const name = slug(record.skillName || record.title);
 	const artifactPath = `agent/skills/${name}/SKILL.md`;
@@ -141,12 +149,13 @@ async function applySkill(record: LearningRecord, config: LearningConfig): Promi
 	return artifactPath;
 }
 
-async function applyRecord(record: LearningRecord, config: LearningConfig): Promise<{ path: string; record: LearningRecord }> {
+async function applyRecord(record: LearningRecord, config: LearningConfig): Promise<{ path: string; record: LearningRecord; lintIssues?: Array<{ level: "high" | "medium" | "low"; text: string }> }> {
 	const path = record.kind === "skill_candidate" ? await applySkill(record, config) : await applyWiki(record, config);
+	const lintIssues = record.kind === "skill_candidate" ? [] : await lintAppliedWikiPage(wikiPageForKind(record.kind));
 	const applied = { ...record, status: "accepted" as const, applied: true, artifactPath: path };
 	await updateInbox(record.id, applied);
 	await appendJsonl(ACCEPTED_PATH, applied);
-	return { path, record: applied };
+	return { path, record: applied, lintIssues };
 }
 
 function formatRecord(record: LearningRecord): string {
@@ -167,15 +176,6 @@ export default function tightLearning(pi: ExtensionAPI) {
 		return pending;
 	}
 
-	pi.on("session_start", () => {
-		const active = pi.getActiveTools();
-		const next = [...active];
-		for (const name of ["learn_capture", "learn_review", "learn_apply", "learn_reject"]) {
-			if (!next.includes(name)) next.push(name);
-		}
-		pi.setActiveTools(next);
-	});
-
 	pi.on("turn_start", async (_event, ctx) => {
 		await updateLearningStatus(ctx);
 	});
@@ -186,7 +186,7 @@ export default function tightLearning(pi: ExtensionAPI) {
 		const now = Date.now();
 		if (now - lastPendingReminder < 10 * 60 * 1000) return;
 		lastPendingReminder = now;
-		ctx.ui.notify(`${pending} learning${pending === 1 ? "" : "s"} pending review. Run /learn review.`, "info");
+		ctx.ui.notify(`${pending} learning${pending === 1 ? "" : "s"} pending review. Ask TinyPi to review pending learnings.`, "info");
 	});
 
 	pi.on("before_agent_start", async () => {
@@ -195,40 +195,9 @@ export default function tightLearning(pi: ExtensionAPI) {
 			message: {
 				customType: "tight-learning-context",
 				display: false,
-				content: `Learning mode: ${config.mode}. Capture durable lessons with learn_capture. Approval is default unless mode explicitly permits auto-apply. Prefer skill_candidate only for repeated procedural workflows.`,
+				content: `Learning mode: ${config.mode}. The tool router exposes learning tools only for learning/review requests. Capture durable lessons with learn_capture. Use learn_review to inspect pending learnings or change mode when the user asks. Approval is default unless mode explicitly permits auto-apply.`,
 			},
 		};
-	});
-
-	pi.registerCommand("learn", {
-		description: "Review or configure TinyPi learning",
-		getArgumentCompletions: (prefix) => {
-			const options = ["status", "review", "mode suggest", "mode approve", "mode auto-memory", "mode auto-safe", "mode auto"];
-			return options.filter((o) => o.startsWith(prefix)).map((value) => ({ value, label: value }));
-		},
-		handler: async (args, ctx) => {
-			const arg = args.trim();
-			const config = await loadConfig();
-			if (!arg || arg === "status") {
-				const pending = await updateLearningStatus(ctx);
-				ctx.ui.notify(`Learning mode: ${config.mode}\nPending learnings: ${pending}`, "info");
-				return;
-			}
-			if (arg === "review") {
-				const pending = (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").slice(-8);
-				ctx.ui.notify(pending.length ? pending.map(formatRecord).join("\n\n---\n\n") : "No pending learnings.", "info");
-				return;
-			}
-			const mode = arg.match(/^mode\s+(.+)$/)?.[1];
-			if (mode && ["suggest", "approve", "auto-memory", "auto-safe", "auto"].includes(mode)) {
-				config.mode = mode as LearningMode;
-				await saveConfig(config);
-				await updateLearningStatus(ctx);
-				ctx.ui.notify(`Learning mode set to ${mode}`, "info");
-				return;
-			}
-			ctx.ui.notify("Usage: /learn status | /learn review | /learn mode <suggest|approve|auto-memory|auto-safe|auto>", "warning");
-		},
 	});
 
 	pi.registerTool({
@@ -276,12 +245,13 @@ export default function tightLearning(pi: ExtensionAPI) {
 				if (ctx.hasUI) {
 					const pending = await updateLearningStatus(ctx);
 					ctx.ui.notify(`Learning auto-applied to ${applied.path}. Pending review: ${pending}`, "info");
+					if (applied.lintIssues?.length) ctx.ui.notify(`Memory wiki lint found ${applied.lintIssues.length} issue${applied.lintIssues.length === 1 ? "" : "s"} after learning apply:\n${summarizeLintIssues(applied.lintIssues)}`, "warning");
 				}
 				return { content: [{ type: "text", text: `Learning captured and auto-applied to ${applied.path}\n\n${formatRecord(applied.record)}` }], details: applied.record };
 			}
 			if (ctx.hasUI) {
 				const pending = await updateLearningStatus(ctx);
-				ctx.ui.notify(`Captured learning pending review. Run /learn review. Pending: ${pending}`, "info");
+				ctx.ui.notify(`Captured learning pending review. Ask TinyPi to review pending learnings. Pending: ${pending}`, "info");
 			}
 			return { content: [{ type: "text", text: `Learning captured for review.\n\n${formatRecord(record)}` }], details: record };
 		},
@@ -294,15 +264,24 @@ export default function tightLearning(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "learn_review",
 		label: "Review Learnings",
-		description: "Review pending learning records.",
-		promptSnippet: "Review pending captured learnings before applying or rejecting.",
+		description: "Review pending learning records, report learning status, or set learning mode when the user asks.",
+		promptSnippet: "Review pending learnings or update learning mode when requested.",
 		parameters: Type.Object({
 			limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 20, description: "Max records. Defaults to 8." })),
+			mode: Type.Optional(StringEnum(["suggest", "approve", "auto-memory", "auto-safe", "auto"], { description: "Set learning mode only when the user explicitly asks." })),
 		}),
-		async execute(_id, params) {
+		async execute(_id, params, _signal, _onUpdate, ctx) {
+			const config = await loadConfig();
+			if (typeof params.mode === "string") {
+				config.mode = params.mode as LearningMode;
+				await saveConfig(config);
+				if (ctx.hasUI) await updateLearningStatus(ctx);
+			}
 			const limit = typeof params.limit === "number" ? Math.max(1, Math.min(20, params.limit)) : 8;
 			const pending = (await readJsonl(INBOX_PATH)).filter((r) => r.status === "pending").slice(-limit);
-			return { content: [{ type: "text", text: pending.length ? pending.map(formatRecord).join("\n\n---\n\n") : "No pending learnings." }], details: { count: pending.length } };
+			const header = `Learning mode: ${config.mode}\nPending learnings: ${pending.length}`;
+			const body = pending.length ? "\n\n" + pending.map(formatRecord).join("\n\n---\n\n") : "\n\nNo pending learnings.";
+			return { content: [{ type: "text", text: header + body }], details: { count: pending.length, mode: config.mode } };
 		},
 	});
 
@@ -327,7 +306,10 @@ export default function tightLearning(pi: ExtensionAPI) {
 				if (!ok) return { content: [{ type: "text", text: "Learning not applied." }], details: { applied: false, id: record.id } };
 			}
 			const applied = await applyRecord(record, config);
-			if (ctx.hasUI) await updateLearningStatus(ctx);
+			if (ctx.hasUI) {
+				await updateLearningStatus(ctx);
+				if (applied.lintIssues?.length) ctx.ui.notify(`Memory wiki lint found ${applied.lintIssues.length} issue${applied.lintIssues.length === 1 ? "" : "s"} after learning apply:\n${summarizeLintIssues(applied.lintIssues)}`, "warning");
+			}
 			return { content: [{ type: "text", text: `Learning applied to ${applied.path}\n\n${formatRecord(applied.record)}` }], details: applied.record };
 		},
 	});

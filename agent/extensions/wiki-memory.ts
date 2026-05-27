@@ -6,6 +6,8 @@ import { mkdir, readdir, readFile, stat, writeFile, appendFile } from "node:fs/p
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, normalize, relative } from "node:path";
+import { findDuplicateLineIssues, formatMemoryLint, memoryPageIssues, normalizedLine, splitSections, summarizeLintIssues } from "./wiki-memory-core.js";
+import { formatPublicWikiLint, lintPublicWiki } from "./wiki-public-core.js";
 
 const AGENT_DIR = process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent");
 const MEMORY_WIKI_DIR = join(AGENT_DIR, "memory", "wiki");
@@ -13,11 +15,9 @@ const MAX_SEARCH_RESULTS = 5;
 const MAX_SNIPPET_CHARS = 900;
 const MAX_READ_CHARS = 8000;
 const MAX_REMEMBER_TEXT = 3000;
-const MAX_PAGE_CHARS = 12000;
-const MAX_SECTION_CHARS = 4000;
-const INBOX_WARN_SECTIONS = 10;
 
 type Scope = "project" | "global" | "both";
+type WikiLintTarget = "memory" | "public" | "all";
 type MemoryKind = "preference" | "decision" | "fact" | "workflow" | "project" | "note";
 
 interface WikiPage {
@@ -49,6 +49,10 @@ function normalizeKind(value: unknown): MemoryKind {
 	return value === "preference" || value === "decision" || value === "fact" || value === "workflow" || value === "project" || value === "note"
 		? value
 		: "note";
+}
+
+function normalizeLintTarget(value: unknown): WikiLintTarget {
+	return value === "public" || value === "all" ? value : "memory";
 }
 
 function rootsForScope(scope: Scope): Array<{ scope: Exclude<Scope, "both">; root: string }> {
@@ -120,17 +124,6 @@ async function loadPages(scope: Scope): Promise<WikiPage[]> {
 	return pages;
 }
 
-function splitSections(content: string): Section[] {
-	const headingRegex = /^(#{1,6})\s+(.+)$/gm;
-	const matches = [...content.matchAll(headingRegex)];
-	if (matches.length === 0) return [{ title: "Document", level: 1, start: 0, end: content.length, content }];
-	return matches.map((match, i) => {
-		const start = match.index ?? 0;
-		const end = i + 1 < matches.length ? matches[i + 1].index ?? content.length : content.length;
-		return { title: match[2].trim(), level: match[1].length, start, end, content: content.slice(start, end).trim() };
-	});
-}
-
 function terms(query: string): string[] {
 	return query.toLowerCase().split(/[^a-z0-9_-]+/).filter((t) => t.length >= 2);
 }
@@ -196,59 +189,27 @@ async function appendMemory(scope: Exclude<Scope, "both">, kind: MemoryKind, tex
 	return { path, relPath };
 }
 
-function normalizedLine(line: string): string {
-	return line.toLowerCase().replace(/[`*_#[\]()]/g, "").replace(/\s+/g, " ").trim();
-}
-
-function pageIssues(page: WikiPage): Array<{ level: "high" | "medium" | "low"; text: string }> {
-	const issues: Array<{ level: "high" | "medium" | "low"; text: string }> = [];
-	const headings = [...page.content.matchAll(/^(#{1,6})\s+(.+)$/gm)];
-	if (!page.content.trim().startsWith("# ")) issues.push({ level: "high", text: `${page.scope}:${page.relPath} missing top-level # title` });
-	if (page.content.length > MAX_PAGE_CHARS) issues.push({ level: "medium", text: `${page.scope}:${page.relPath} page is large (${page.content.length} chars)` });
-	const seenHeadings = new Set<string>();
-	for (const h of headings) {
-		const key = normalizedLine(h[2]);
-		if (seenHeadings.has(key)) issues.push({ level: "medium", text: `${page.scope}:${page.relPath} duplicate heading: ${h[2]}` });
-		seenHeadings.add(key);
-	}
-	for (const section of splitSections(page.content)) {
-		if (section.content.length > MAX_SECTION_CHARS) issues.push({ level: "medium", text: `${page.scope}:${page.relPath} section too large: ${section.title} (${section.content.length} chars)` });
-		if (/^##\s+\d{4}-\d{2}-\d{2}/m.test(section.content)) {
-			if (!/^Type:\s*(preference|decision|fact|workflow|project|note)/mi.test(section.content)) issues.push({ level: "low", text: `${page.scope}:${page.relPath} memory lacks valid Type: ${section.title}` });
-			if (!/^Source:\s*\S+/mi.test(section.content)) issues.push({ level: "low", text: `${page.scope}:${page.relPath} memory lacks Source: ${section.title}` });
-		}
-	}
-	if (page.relPath === "inbox.md" && headings.filter((h) => h[1] === "##").length > INBOX_WARN_SECTIONS) {
-		issues.push({ level: "medium", text: `${page.scope}:inbox.md has many uncurated entries` });
-	}
-	return issues;
+async function lintWikiIssues(scope: Scope): Promise<Array<{ level: "high" | "medium" | "low"; text: string }>> {
+	const pages = await loadPages(scope);
+	return [...pages.flatMap(memoryPageIssues), ...findDuplicateLineIssues(pages)];
 }
 
 async function lintWiki(scope: Scope): Promise<string> {
-	const pages = await loadPages(scope);
-	const issues = pages.flatMap(pageIssues);
-	const lineMap = new Map<string, string[]>();
-	for (const page of pages) {
-		for (const line of page.content.split("\n")) {
-			const n = normalizedLine(line);
-			if (n.length < 40 || n.startsWith("type:") || n.startsWith("source:")) continue;
-			const locs = lineMap.get(n) ?? [];
-			locs.push(`${page.scope}:${page.relPath}`);
-			lineMap.set(n, locs);
-		}
-	}
-	for (const [line, locs] of lineMap) {
-		const unique = [...new Set(locs)];
-		if (unique.length > 1) issues.push({ level: "low", text: `duplicate line across pages: "${line.slice(0, 90)}" in ${unique.join(", ")}` });
-	}
-	if (!issues.length) return "# Wiki lint\n\nNo issues found.";
-	let out = "# Wiki lint\n\n";
-	for (const level of ["high", "medium", "low"] as const) {
-		const items = issues.filter((i) => i.level === level);
-		if (!items.length) continue;
-		out += `## ${level}\n` + items.slice(0, 20).map((i) => `- ${i.text}`).join("\n") + "\n\n";
-	}
-	return clampText(out.trim(), 8000);
+	return clampText(formatMemoryLint(await lintWikiIssues(scope)), 8000);
+}
+
+async function lintAllWikis(scope: Scope, target: WikiLintTarget): Promise<string> {
+	const parts: string[] = [];
+	if (target === "memory" || target === "all") parts.push(await lintWiki(scope));
+	if (target === "public" || target === "all") parts.push(formatPublicWikiLint(await lintPublicWiki(AGENT_DIR)));
+	return parts.join("\n\n---\n\n");
+}
+
+async function notifyMemoryLintIssues(ctx: { hasUI?: boolean; ui?: { notify: (message: string, level?: "info" | "warning" | "error") => void } } | undefined, scope: Scope) {
+	if (!ctx?.hasUI || !ctx.ui) return;
+	const issues = (await lintWikiIssues(scope)).filter((issue) => issue.level !== "low");
+	if (!issues.length) return;
+	ctx.ui.notify(`Memory wiki lint found ${issues.length} issue${issues.length === 1 ? "" : "s"} after write:\n${summarizeLintIssues(issues)}`, "warning");
 }
 
 async function reviewWiki(scope: Scope): Promise<string> {
@@ -280,14 +241,6 @@ async function reviewWiki(scope: Scope): Promise<string> {
 
 export default function wikiMemory(pi: ExtensionAPI) {
 	void ensureWikis();
-
-	pi.on("session_start", () => {
-		const active = pi.getActiveTools().map((t) => t.name);
-		for (const name of ["wiki_search", "wiki_read", "wiki_remember", "wiki_lint", "wiki_review"]) {
-			if (!active.includes(name)) active.push(name);
-		}
-		pi.setActiveTools(active);
-	});
 
 	pi.on("context", (event) => {
 		const reminder = "Memory policy: use wiki_search before answering about user preferences, prior decisions, workflows, architecture, project history, or durable facts. Search first, then wiki_read only specific pages/sections. Never write memory silently; use wiki_remember only with user approval.";
@@ -361,13 +314,14 @@ export default function wikiMemory(pi: ExtensionAPI) {
 	pi.registerTool({
 		name: "wiki_lint",
 		label: "Wiki Lint",
-		description: "Check wiki memory for mechanical problems: duplicate headings, oversized pages/sections, missing Type/Source, duplicate lines. Read-only.",
-		promptSnippet: "Check wiki for mechanical memory issues. Read-only.",
+		description: "Check local memory wiki or shipped public wiki for mechanical problems. Read-only.",
+		promptSnippet: "Check wiki for mechanical memory/frontmatter/index issues. Read-only.",
 		parameters: Type.Object({
 			scope: Type.Optional(StringEnum(["project", "global", "both"], { description: "Usually omit. Defaults to both." })),
+			target: Type.Optional(StringEnum(["memory", "public", "all"], { description: "Usually omit. Use public to validate shipped wiki frontmatter and index coverage." })),
 		}),
 		async execute(_id, params) {
-			const output = await lintWiki(normalizeScope(params.scope));
+			const output = await lintAllWikis(normalizeScope(params.scope), normalizeLintTarget(params.target));
 			return { content: [{ type: "text", text: output }], details: { readOnly: true } };
 		},
 	});
@@ -411,6 +365,7 @@ export default function wikiMemory(pi: ExtensionAPI) {
 			const ok = await ctx.ui.confirm("Save wiki memory?", preview);
 			if (!ok) return { content: [{ type: "text", text: "Memory not saved." }], details: { saved: false } };
 			const result = await appendMemory(scope, kind, text, source);
+			await notifyMemoryLintIssues(ctx, scope);
 			return { content: [{ type: "text", text: `Memory saved to ${scope}:${result.relPath}` }], details: { saved: true, scope, path: result.relPath, kind } };
 		},
 	});

@@ -1,3 +1,15 @@
+---
+title: pi-tool-display
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - tool-display
+  - tui
+updated: 2026-05-27
+---
+
 # pi-tool-display
 
 Installed package for compact tool rendering in pi.

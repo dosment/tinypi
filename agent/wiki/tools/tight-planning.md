@@ -1,3 +1,15 @@
+---
+title: Tight Planning Extension
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - planning
+  - guardrails
+updated: 2026-05-27
+---
+
 # Tight Planning Extension
 
 Tiny-model planning mode for pi.
@@ -14,7 +26,7 @@ Location:
 
 It has two layers:
 
-- Always-available `plan_*` tools so the model can create or update a plan automatically when work is broad, risky, multi-step, or ambiguous.
+- Router-enabled `plan_*` tools so the model can create or update a plan automatically when work is broad, risky, multi-step, or ambiguous.
 - Explicit `/planning` mode that makes the session read-only until the user exits planning or runs the plan.
 
 ## Commands
@@ -58,4 +70,4 @@ When planning mode is active:
 - `bash` is restricted to read-only inspection commands.
 - The model is instructed to inspect first and create/update a plan instead of modifying files.
 
-Outside explicit planning mode, planning tools remain available. The model is instructed to use them for broad, multi-step, risky, or ambiguous work, and to skip planning for simple one-shot tasks.
+Outside explicit planning mode, the tool router exposes planning tools for broad, multi-step, risky, or ambiguous work, and keeps them out of context for simple one-shot tasks.

@@ -1,3 +1,15 @@
+---
+title: Tight Web Extension
+type: tool-reference
+status: public
+audience: tiny-model, maintainer
+tags:
+  - tinypi
+  - web
+  - retrieval
+updated: 2026-05-27
+---
+
 # Tight Web Extension
 
 Small-model wrapper for `pi-web-access`.
