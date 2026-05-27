@@ -99,34 +99,68 @@ npm install
 npm run install:local
 ```
 
-The installer copies TinyPi into your pi config directory:
+By default, the installer targets your pi agent directory:
 
 ```text
+~/.pi/agent/
+```
+
+Set `PI_CODING_AGENT_DIR` to install into a different agent directory, which is the recommended way to test without touching your live pi setup:
+
+```bash
+PI_CODING_AGENT_DIR=/tmp/tinypi-install-test npm run install:local
+```
+
+TinyPi is installed as an overlay, not a pi.dev fork. The installer manages only TinyPi-owned files:
+
+```text
+agent/AGENTS.md        -> ~/.pi/agent/AGENTS.md
 agent/extensions/*     -> ~/.pi/agent/extensions/
 agent/skills/*         -> ~/.pi/agent/skills/
 agent/wiki/*           -> ~/.pi/agent/wiki/
+agent/tests/*          -> ~/.pi/agent/tests/
 agent/npm/package.json -> ~/.pi/agent/npm/
 ```
 
-It also creates this local-only memory directory without replacing existing memory:
-
-```text
-~/.pi/agent/memory/wiki/
-```
-
-It also runs `npm install` in:
-
-```text
-~/.pi/agent/npm/
-```
-
-For development, symlink the overlay instead of copying:
+Install mode defaults to copy mode. For development, symlink the overlay instead of copying:
 
 ```bash
 npm run install:local:symlink
 ```
 
-Verify:
+Symlink mode refuses to replace an existing real directory with a symlink, so use it against a clean development target or remove only the TinyPi-owned target path first.
+
+The installer preserves user-owned runtime state. It does not replace these user-owned paths:
+
+```text
+~/.pi/agent/auth/
+~/.pi/agent/sessions/
+~/.pi/agent/plans/
+~/.pi/agent/memory/
+~/.pi/agent/models/
+~/.pi/agent/logs/
+~/.pi/agent/.env
+~/.pi/agent/*.local.*
+```
+
+`settings.json` is shared config: TinyPi merges/preserves existing settings instead of treating the file as a disposable TinyPi-owned overlay. Default `memory/wiki/*` files are created only when missing.
+
+It also installs TinyPi npm dependencies in the target runtime package directory:
+
+```text
+~/.pi/agent/npm/
+```
+
+Verify a temporary install before relying on it:
+
+```bash
+TINYPI_VERIFY_INSTALL_DIR=/tmp/tinypi-verify npm run verify
+# or run the installer directly:
+PI_CODING_AGENT_DIR=/tmp/tinypi-install-test npm run install:local
+PI_CODING_AGENT_DIR=/tmp/tinypi-install-test PI_OFFLINE=1 /tmp/tinypi-install-test/npm/node_modules/.bin/pi --list-models tiny-tools
+```
+
+For a live install, verify:
 
 ```bash
 pi --list-models tiny-tools
