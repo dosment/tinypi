@@ -37,25 +37,51 @@ export function lightRepairJson(json) {
 		.replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)/g, '$1"$2"$3');
 }
 
+const ARG_WRAPPER_KEYS = ["arguments", "args", "tool_args", "tool_input", "input", "parameters", "params", "payload"];
+
+function parseArgs(args) {
+	if (args === undefined) return {};
+	if (typeof args === "string") {
+		try { args = JSON.parse(args); } catch { return null; }
+	}
+	if (!args || typeof args !== "object" || Array.isArray(args)) return null;
+	const keys = Object.keys(args);
+	if (keys.length === 1 && ARG_WRAPPER_KEYS.includes(keys[0])) return parseArgs(args[keys[0]]);
+	return args;
+}
+
 export function normalizeCommand(parsed) {
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
 	const obj = parsed;
-	const final = obj.final ?? obj.answer ?? obj.response;
-	if (typeof final === "string" && !("tool" in obj) && !("name" in obj) && !("tool_name" in obj)) {
-		return { kind: "final", text: final, raw: parsed };
+	if (obj.function_call && typeof obj.function_call === "object" && !Array.isArray(obj.function_call)) {
+		const name = obj.function_call.name;
+		if (typeof name !== "string") return null;
+		const args = parseArgs(obj.function_call.arguments ?? obj.function_call.args);
+		return args ? { kind: "tool", name, arguments: args, raw: parsed } : null;
+	}
+	if (obj.function && typeof obj.function === "object" && !Array.isArray(obj.function)) {
+		const name = obj.function.name;
+		if (typeof name !== "string") return null;
+		const args = parseArgs(obj.function.arguments ?? obj.function.args);
+		return args ? { kind: "tool", name, arguments: args, raw: parsed } : null;
 	}
 	const name = obj.tool ?? obj.name ?? obj.tool_name ?? obj.function;
-	if (typeof name !== "string") return null;
-	let args = obj.arguments ?? obj.args ?? obj.input ?? obj.parameters;
-	if (args === undefined) {
-		args = { ...obj };
-		for (const k of ["tool", "name", "tool_name", "function"]) delete args[k];
+	if (typeof name === "string") {
+		let args = obj.arguments ?? obj.args ?? obj.tool_args ?? obj.tool_input ?? obj.input ?? obj.parameters ?? obj.params ?? obj.payload;
+		if (args === undefined) {
+			args = { ...obj };
+			for (const k of ["tool", "name", "tool_name", "function", "function_call"]) delete args[k];
+		}
+		const parsedArgs = parseArgs(args);
+		return parsedArgs ? { kind: "tool", name, arguments: parsedArgs, raw: parsed } : null;
 	}
-	if (typeof args === "string") {
-		try { args = JSON.parse(args); } catch { args = { value: args }; }
+	const final = obj.final ?? obj.final_answer ?? obj.answer ?? obj.response ?? obj.message ?? obj.content;
+	if (typeof final === "string") return { kind: "final", text: final, raw: parsed };
+	if (final && typeof final === "object" && !Array.isArray(final)) {
+		const text = final.text ?? final.content ?? final.message;
+		if (typeof text === "string") return { kind: "final", text, raw: parsed };
 	}
-	if (!args || typeof args !== "object" || Array.isArray(args)) args = {};
-	return { kind: "tool", name, arguments: args, raw: parsed };
+	return null;
 }
 
 export function parseCommand(text) {

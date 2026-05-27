@@ -76,7 +76,7 @@ function formatFetched(result: ExtractedContent, responseId: string, format: For
 	const body = compactForInline(result.content, format, maxChars);
 	const header = result.title ? `# ${result.title}\n\n` : "";
 	const note = body.length < result.content.length || format === "compact"
-		? `\n\n---\nStored full content. To retrieve it: get_search_content({ responseId: "${responseId}", urlIndex: 0 })`
+		? `\n\n---\nStored full content. To retrieve it, call get_search_content with arguments {"responseId":"${responseId}","urlIndex":0}.`
 		: "";
 	return header + body + note;
 }
@@ -178,7 +178,7 @@ export default function tightWeb(pi: ExtensionAPI) {
 				const r = results[i];
 				out += r.error ? `- ${i}: ${r.url} ERROR ${r.error}\n` : `- ${i}: ${r.title || r.url} (${r.content.length} chars)\n`;
 			}
-			out += `\nFull content stored. Use get_search_content({ responseId: "${responseId}", urlIndex: 0 })`;
+			out += `\nFull content stored. Call get_search_content with arguments {"responseId":"${responseId}","urlIndex":0}.`;
 			return { content: [{ type: "text", text: out }], details: { responseId, urlCount: urls.length } };
 		},
 		renderCall(args, theme) {

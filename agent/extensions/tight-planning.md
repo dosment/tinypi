@@ -50,6 +50,8 @@ Step status marks:
 - `[x]` done
 - `[!]` blocked
 
+For `plan_update`, use the exact `status` enum values: `pending`, `in_progress`, `done`, or `blocked`.
+
 ## Planning Mode Rules
 
 When planning mode is active:

@@ -162,7 +162,7 @@ or:
 
 It then parses, lightly repairs, validates, and converts that text into native pi tool calls.
 
-TinyPi also enables a terse protocol by default for tiny models. This is structured semantic compression, not a flat assistant personality: the model is told to use concise but natural user-facing prose while preserving constraints, negations, source ids, paths, ids, error text, and missing-info behavior. Tool results and history are lightly compacted before being sent back to the local model.
+TinyPi also enables a terse protocol by default for tiny models. This is structured semantic compression, not a flat assistant personality: the model is told to use natural user-facing prose while preserving constraints, negations, source ids, paths, ids, error text, and missing-info behavior. The shim also gives explicit final-answer tone guidance so normal discussion should feel conversational instead of clipped. Tool results and history are lightly compacted before being sent back to the local model.
 
 Configure it in:
 

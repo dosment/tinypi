@@ -43,6 +43,56 @@ const cases = [
 		expect: { kind: "tool", name: "edit", arguments: { path: "a.txt", oldText: "x", newText: "y" } },
 	},
 	{
+		name: "tool_args alias",
+		input: '{"tool":"wiki_remember","tool_args":{"text":"TinyPi was created by Dan for tiny LLM models.","kind":"fact","scope":"project"}}',
+		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi was created by Dan for tiny LLM models.", kind: "fact", scope: "project" } },
+	},
+	{
+		name: "tool_input alias",
+		input: '{"tool":"wiki_search","tool_input":{"query":"TinyPi creator"}}',
+		expect: { kind: "tool", name: "wiki_search", arguments: { query: "TinyPi creator" } },
+	},
+	{
+		name: "params alias",
+		input: '{"tool":"plan_update","params":{"step":1,"status":"done"}}',
+		expect: { kind: "tool", name: "plan_update", arguments: { step: 1, status: "done" } },
+	},
+	{
+		name: "payload alias",
+		input: '{"tool":"web_search","payload":{"query":"TinyPi docs"}}',
+		expect: { kind: "tool", name: "web_search", arguments: { query: "TinyPi docs" } },
+	},
+	{
+		name: "OpenAI function_call shape",
+		input: '{"function_call":{"name":"read","arguments":"{\\"path\\":\\"README.md\\"}"}}',
+		expect: { kind: "tool", name: "read", arguments: { path: "README.md" } },
+	},
+	{
+		name: "function_call wins over response text",
+		input: '{"response":"Calling read.","function_call":{"name":"read","arguments":"{\\"path\\":\\"README.md\\"}"}}',
+		expect: { kind: "tool", name: "read", arguments: { path: "README.md" } },
+	},
+	{
+		name: "nested function shape",
+		input: '{"function":{"name":"grep","arguments":{"pattern":"TODO","path":"."}}}',
+		expect: { kind: "tool", name: "grep", arguments: { pattern: "TODO", path: "." } },
+	},
+	{
+		name: "nested argument wrapper",
+		input: '{"tool":"wiki_remember","arguments":{"tool_args":{"text":"TinyPi was created by Dan.","kind":"fact"}}}',
+		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi was created by Dan.", kind: "fact" } },
+	},
+	{
+		name: "final_answer alias",
+		input: '{"final_answer":"Done."}',
+		expect: { kind: "final", text: "Done." },
+	},
+	{
+		name: "nested final text",
+		input: '{"answer":{"text":"Done."}}',
+		expect: { kind: "final", text: "Done." },
+	},
+	{
 		name: "missing arguments defaults to remaining object keys",
 		input: '{"tool":"read","path":"README.md"}',
 		expect: { kind: "tool", name: "read", arguments: { path: "README.md" } },
@@ -54,7 +104,17 @@ const cases = [
 	},
 	{
 		name: "JSON without command",
-		input: '{"message":"hello"}',
+		input: '{"note":"hello"}',
+		expectError: "JSON did not contain either",
+	},
+	{
+		name: "array arguments rejected",
+		input: '{"tool":"plan_read","arguments":["now"]}',
+		expectError: "JSON did not contain either",
+	},
+	{
+		name: "unparseable arguments string rejected",
+		input: '{"tool":"read","arguments":"README.md"}',
 		expectError: "JSON did not contain either",
 	},
 ];

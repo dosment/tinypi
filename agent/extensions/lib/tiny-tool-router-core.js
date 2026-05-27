@@ -1,6 +1,6 @@
 export const TOOL_BUNDLES = Object.freeze({
 	base: ["ask_user"],
-	code: ["read", "grep", "ls", "edit", "write", "bash"],
+	code: ["read", "grep", "find", "ls", "edit", "write", "bash"],
 	web: ["web_search", "fetch_content"],
 	web_followup: ["get_search_content"],
 	memory: ["wiki_search", "wiki_read", "wiki_remember"],
@@ -16,14 +16,34 @@ const CODE_RE = /\b(code|repo|file|files|bug|error|test|tests|build|install|read
 const WEB_RE = /\b(web|search|browse|look\s*up|latest|current|today|news|source|citation|docs?|official|url|https?:\/\/)\b/i;
 const MEMORY_RE = /\b(remember|memory|wiki|preference|preferences|decision|decisions|workflow|workflows|project history|prior|previous|convention|facts?|curate)\b/i;
 const MEMORY_MAINTENANCE_RE = /\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b.*\b(wiki|memory)\b|\b(wiki|memory)\b.*\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b/i;
-const PLANNING_RE = /\b(plan|planning|roadmap|approach|architecture|design|strategy|multi[- ]?step|risky|ambiguous|scope|tradeoff|tradeoffs)\b/i;
+const PLANNING_RE = /\b(plan|planning|planned|active plan|next step|roadmap|approach|architecture|design|strategy|multi[- ]?step|risky|ambiguous|scope|tradeoff|tradeoffs|continue|resume)\b/i;
 const LEARNING_RE = /\b(learn|learning|lesson|lessons|self[- ]?learn|capture|pending learnings?|auto-memory|auto-safe|skill candidate|promote.*skill)\b/i;
-const COMPLETE_RE = /\b(complete|finish|done|mark.*done|close.*plan)\b/i;
-const FETCH_STORED_RE = /\b(get_search_content|responseId|stored full content|full content)\b/i;
+const COMPLETE_RE = /\b(plan_complete|complete (the )?(active )?plan|mark (the )?(active )?plan (complete|done)|close (the )?(active )?plan)\b/i;
+const EXECUTE_PLAN_RE = /\b(execute|run|work|continue|resume)\b.*\b(active plan|plan|planned step|next step)\b|\b(active plan|plan|planned step|next step)\b.*\b(execute|run|work|continue|resume)\b/i;
+const FETCH_STORED_RE = /\b(get_search_content|responseId|stored full content|full content|fetch (the )?(first|next|stored) result|open (the )?(first|next) result|retrieve (the )?(full )?(page|content))\b/i;
+const LEARNING_FOLLOWUP_RE = /\b(apply|approve|reject|discard)\b.*\b(pending )?(learning|learnings|lesson|lessons|first one|that one)\b/i;
+
+function escapeRegExp(value) {
+	return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function mentionsToolName(text, name) {
+	const lower = text.toLowerCase();
+	const literal = String(name).toLowerCase();
+	if (literal.includes("_")) return lower.includes(literal);
+	return new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(literal)}([^A-Za-z0-9_]|$)`, "i").test(text);
+}
 
 function mentionsAny(text, names) {
-	const lower = text.toLowerCase();
-	return names.some((name) => lower.includes(name.toLowerCase()));
+	return names.some((name) => mentionsToolName(text, name));
+}
+
+function allToolNames() {
+	return [...new Set(Object.values(TOOL_BUNDLES).flat())];
+}
+
+function literalToolMentions(text) {
+	return allToolNames().filter((name) => mentionsToolName(text, name));
 }
 
 function addUnique(target, names) {
@@ -42,6 +62,18 @@ function clampTools(tools, maxTools) {
 		out.push(name);
 	}
 	return out;
+}
+
+function clampToolsWithPinned(tools, maxTools, pinned = []) {
+	if (!maxTools || tools.length <= maxTools) return tools;
+	const out = [];
+	addUnique(out, TOOL_BUNDLES.base);
+	addUnique(out, pinned);
+	for (const name of tools) {
+		if (out.length >= maxTools) break;
+		addUnique(out, [name]);
+	}
+	return out.slice(0, maxTools);
 }
 
 export function detectToolBundles(prompt, options = {}) {
@@ -73,11 +105,15 @@ export function detectToolBundles(prompt, options = {}) {
 		bundles.push("planning");
 		reasons.push("planning");
 	}
-	if ((COMPLETE_RE.test(text) && /\b(plan|planning)\b/i.test(text)) || mentionsAny(text, TOOL_BUNDLES.plan_complete)) {
+	if (EXECUTE_PLAN_RE.test(text)) {
+		bundles.push("code");
+		reasons.push("plan-execution");
+	}
+	if (COMPLETE_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.plan_complete)) {
 		bundles.push("plan_complete");
 		reasons.push("plan-complete");
 	}
-	if (LEARNING_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.learning)) {
+	if (LEARNING_RE.test(text) || LEARNING_FOLLOWUP_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.learning)) {
 		bundles.push("learning");
 		reasons.push("learning");
 	}
@@ -94,11 +130,12 @@ export function routeTools(prompt, options = {}) {
 	const maxTools = Number.isInteger(options.maxTools) ? options.maxTools : DEFAULT_MAX_TOOLS;
 	const { bundles, reasons } = detectToolBundles(prompt, options);
 	const tools = [];
+	const pinned = literalToolMentions(String(prompt ?? ""));
 	for (const bundle of bundles) addUnique(tools, TOOL_BUNDLES[bundle] ?? []);
 	return {
 		bundles,
 		reasons,
-		tools: clampTools(tools, maxTools),
+		tools: clampToolsWithPinned(tools, maxTools, pinned),
 	};
 }
 

@@ -24,7 +24,7 @@ const cut = compactLines("x".repeat(300), { maxLineChars: 40, maxChars: 500 });
 assert.match(cut, /\.\.\.\[line cut\]$/);
 
 assert.equal(buildTerseProtocolBlock("off"), "");
-assert.match(buildTerseProtocolBlock("terse"), /concise but natural user-facing prose/);
+assert.match(buildTerseProtocolBlock("terse"), /natural user-facing prose/);
 assert.match(buildTerseProtocolBlock("strict"), /Prefer short bullets or JSON fields/);
 
 assert.equal(tokenEstimate("abcd"), 1);

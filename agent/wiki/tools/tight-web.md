@@ -179,11 +179,8 @@ The intended model policy is:
 On `session_start`, the extension:
 
 - restores stored web results from session history
-- ensures these tools are active:
-  - `web_search`
-  - `fetch_content`
-  - `get_search_content`
-- removes `code_search` from active tools to reduce tool clutter
+
+The tool router exposes `web_search`, `fetch_content`, and `get_search_content` only for web/search requests or stored-content follow-ups.
 
 ## Why Not Replace `pi-web-access`?
 

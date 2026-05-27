@@ -71,10 +71,10 @@ After agent turns, TinyPi also reminds the user when learnings are pending revie
 ## Autonomy Modes
 
 ```text
-suggest      capture only; never apply
+suggest      capture only; never auto-apply
 approve      default; ask before durable writes
 auto-memory  auto-apply wiki/preference/workflow/note learnings
-auto-safe    auto-apply memory plus test fixture candidates
+auto-safe    auto-apply memory plus test fixture notes
 auto         auto-apply all allowed learning kinds
 ```
 

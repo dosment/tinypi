@@ -74,7 +74,7 @@ The model is instructed to output exactly one JSON object and no markdown.
 
 TinyPi also adds a terse protocol block by default. This is not "caveman" style and should not flatten the assistant's personality. It is structured semantic compression:
 
-- use concise but natural user-facing prose
+- use natural user-facing prose
 - be warm, specific, and a little fuller when explaining decisions or outcomes
 - preserve constraints, negations, source ids, paths, ids, and errors
 - say `MISSING` when information is unavailable
@@ -90,8 +90,10 @@ To call a tool:
 To answer finally:
 
 ```json
-{"final":"your concise answer"}
+{"final":"your answer"}
 ```
+
+Final-answer tone is part of the protocol. User-facing discussion should read like a capable teammate: conversational, lightly warm, specific about what changed or why it matters, and not clipped into one-line status output unless the task is trivial.
 
 Rules enforced/promoted by the shim:
 

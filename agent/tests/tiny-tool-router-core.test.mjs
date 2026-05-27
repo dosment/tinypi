@@ -14,6 +14,9 @@ assert.ok(code.bundles.includes("code"));
 assert.ok(code.tools.includes("read"));
 assert.ok(code.tools.includes("edit"));
 
+const findToolName = routeTools("Use find to locate package files", { maxTools: 9 });
+assert.ok(findToolName.tools.includes("find"));
+
 const web = routeTools("Look up the latest official docs for this API", { maxTools: 9 });
 assert.ok(web.bundles.includes("web"));
 assert.ok(web.tools.includes("web_search"));
@@ -59,6 +62,27 @@ assert.ok(maintenanceToolName.tools.includes("wiki_lint"));
 const capped = routeTools("Implement code, search web, remember wiki, planning, learning", { maxTools: 5 });
 assert.equal(capped.tools.length, 5);
 assert.equal(capped.tools[0], "ask_user");
+
+const cappedLiteralLearning = routeTools("Use learn_reject after reading files and searching web", { maxTools: 10 });
+assert.ok(cappedLiteralLearning.tools.includes("learn_reject"));
+
+const cappedLiteralMaintenance = routeTools("Run wiki_lint on README docs and memory", { maxTools: 10 });
+assert.ok(cappedLiteralMaintenance.tools.includes("wiki_lint"));
+
+const executePlan = routeTools("Execute the active plan: Update homepage (0/3 done)", { maxTools: 10 });
+assert.ok(executePlan.tools.includes("read"));
+assert.ok(executePlan.tools.includes("edit"));
+assert.ok(!executePlan.tools.includes("plan_complete"));
+
+const continuePlan = routeTools("Continue with the next planned step", { maxTools: 10 });
+assert.ok(continuePlan.tools.includes("plan_read"));
+assert.ok(continuePlan.tools.includes("plan_update"));
+
+const fetchResultFollowup = routeTools("Fetch the first result", { maxTools: 10 });
+assert.ok(fetchResultFollowup.tools.includes("get_search_content"));
+
+const learningApplyFollowup = routeTools("Apply the first pending learning", { maxTools: 10 });
+assert.ok(learningApplyFollowup.tools.includes("learn_apply"));
 
 assert.deepEqual(filterAvailableTools(["ask_user", "missing", "wiki_search"], ["ask_user", "wiki_search"]), ["ask_user", "wiki_search"]);
 
