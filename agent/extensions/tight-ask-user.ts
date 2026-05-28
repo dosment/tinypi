@@ -7,6 +7,8 @@ const MAX_QUESTION_CHARS = 300;
 const MAX_LABEL_CHARS = 60;
 const MAX_DESCRIPTION_CHARS = 160;
 const MAX_QUESTIONS_PER_TURN = 2;
+const WEB_TOOLS = ["web_search", "fetch_content", "get_search_content"];
+const WEB_REQUEST_RE = /\b(web|search|internet|online|website|site|url|link|links|docs?|documentation|official|nvidia|find it|look it up|try again)\b/i;
 
 interface AskOption {
 	label: string;
@@ -72,6 +74,15 @@ export default function tightAskUser(pi: ExtensionAPI) {
 	function rememberAnswer(entry: RecentAnswer) {
 		recentAnswers.unshift(entry);
 		recentAnswers.splice(5);
+	}
+
+	function enableWebToolsIfAvailable() {
+		const available = new Set((pi.getAllTools() as Array<{ name?: string }>).map((t) => t.name).filter(Boolean));
+		const active = pi.getActiveTools().map((t) => t.name);
+		for (const name of WEB_TOOLS) {
+			if (available.has(name) && !active.includes(name)) active.push(name);
+		}
+		pi.setActiveTools(active);
 	}
 
 	pi.on("before_agent_start", () => {
@@ -245,7 +256,10 @@ export default function tightAskUser(pi: ExtensionAPI) {
 				return { content: [{ type: "text", text: "User cancelled." }], details: { question, options: labels, answer: null, cancelled: true } as AskUserDetails };
 			}
 			rememberAnswer({ questionKey: key, question, answer: result.answer });
-			const text = result.wasCustom ? `User answered: ${result.answer}` : `User selected: ${result.index}. ${result.answer}`;
+			const shouldEnableWeb = WEB_REQUEST_RE.test(result.answer) || WEB_REQUEST_RE.test(question);
+			if (shouldEnableWeb) enableWebToolsIfAvailable();
+			const text = (result.wasCustom ? `User answered: ${result.answer}` : `User selected: ${result.index}. ${result.answer}`)
+				+ (shouldEnableWeb ? "\nWeb research tools are now available. If the user asked you to search/find official docs, call web_search next instead of asking another source-material question." : "");
 			return { content: [{ type: "text", text }], details: { question, options: labels, answer: result.answer, wasCustom: result.wasCustom } as AskUserDetails };
 		},
 
