@@ -26,10 +26,10 @@ const COMPLETE_RE = /\b(plan_complete|complete (the )?(active )?plan|mark (the )
 const EXECUTE_PLAN_RE = /\b(execute|run|work|continue|resume)\b.*\b(active plan|plan|planned step|next step)\b|\b(active plan|plan|planned step|next step)\b.*\b(execute|run|work|continue|resume)\b/i;
 const FETCH_STORED_RE = /\b(get_search_content|responseId|stored full content|full content|fetch (the )?(first|next|stored) result|open (the )?(first|next) result|retrieve (the )?(full )?(page|content))\b/i;
 const LEARNING_FOLLOWUP_RE = /\b(apply|approve|reject|discard)\b.*\b(pending )?(learning|learnings|lesson|lessons|first one|that one)\b/i;
-const ARTIFACT_RE = /\b(make|create|build|draft|write|save|generate|produce)\b[\s\S]{0,80}\b(practice exam|exam|quiz|quizzes|question bank|multiple choice|study guide|skill\.md|markdown file|markdown doc(?:ument)?|docs?|artifact|deliverable)\b|\b(practice exam|exam|quiz|quizzes|question bank|multiple choice|study guide|skill\.md|markdown file|markdown doc(?:ument)?|docs?|artifact|deliverable)\b[\s\S]{0,80}\b(make|create|build|draft|write|save|generate|produce|save it)\b/i;
+const ARTIFACT_RE = /\b(make|create|build|draft|write|save|generate|produce|compile)\b[\s\S]{0,80}\b(practice exam|exam|quiz|quizzes|question bank|multiple choice|study guide|skill\.md|markdown file|markdown doc(?:ument)?|docs?|artifact|deliverable)\b|\b(practice exam|exam|quiz|quizzes|question bank|multiple choice|study guide|skill\.md|markdown file|markdown doc(?:ument)?|docs?|artifact|deliverable)\b[\s\S]{0,80}\b(make|create|build|draft|write|save|generate|produce|compile|save it)\b/i;
 const ARTIFACT_DISCUSSION_RE = /\b(?:how (?:do|would|can|should) (?:i|we)|explain|discuss|tell me about|what (?:is|are))\b/i;
 const ARTIFACT_USER_ASK_RE = /\b(?:for me|make me|build me|create me|write me|generate me|save it|save this)\b/i;
-const ARTIFACT_PINNED_TOOLS = ["read", "edit", "write", "bash"];
+const ARTIFACT_PINNED_TOOLS = ["read", "write", "edit", "bash"];
 
 function escapeRegExp(value) {
 	return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

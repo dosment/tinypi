@@ -66,11 +66,8 @@ for (const prompt of artifactDiscussionPrompts) {
 	assert.ok(!routed.reasons.includes("artifact"), prompt);
 }
 
-const tinyArtifactToolBudget = routeTools("Build a quiz SKILL.md for NCP-AAI exam prep with official sources", { maxTools: 6, autoPlanLongPrompts: true });
-assert.ok(tinyArtifactToolBudget.tools.includes("web_search"), "small artifact budget preserves web_search");
-assert.ok(tinyArtifactToolBudget.tools.includes("plan_create"), "small artifact budget preserves plan_create");
-assert.ok(tinyArtifactToolBudget.tools.includes("read"), "small artifact budget preserves a write-path tool");
-assert.ok(tinyArtifactToolBudget.tools.includes("edit") || tinyArtifactToolBudget.tools.includes("write"), "small artifact budget preserves an edit/write tool");
+const tinyArtifactToolBudget = routeTools("Create a multiple choice NCP-AAI exam, search official docs, remember sources, planning, learning, audit wiki memory", { maxTools: 5, autoPlanLongPrompts: true });
+assert.deepEqual(tinyArtifactToolBudget.tools, ["ask_user", "web_search", "plan_create", "read", "write"], "small artifact budget pins critical artifact tools before memory/learning/maintenance");
 
 const requirementsBrief = routeTools("Draft a requirements brief for a new multiple choice exam prep skill", { maxTools: 10 });
 assert.ok(requirementsBrief.bundles.includes("planning_requirements"));
