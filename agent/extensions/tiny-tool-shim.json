@@ -17,5 +17,6 @@
   "maxSchemaChars": 14000,
   "allowTextFinal": true,
   "terseProtocol": "terse",
-  "contextCompression": "light"
+  "contextCompression": "light",
+  "thinkingEnabled": false
 }

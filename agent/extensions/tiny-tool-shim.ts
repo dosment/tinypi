@@ -1,6 +1,6 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	calculateCost,
@@ -20,6 +20,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { parseCommand, type ParsedCommand } from "./lib/tiny-tool-shim-parser.js";
 import { buildTerseProtocolBlock, compactLines, type TerseProtocolMode } from "./lib/tiny-protocol-core.js";
+import { buildTinyToolProviderModels, mergeTinyToolConfig, setReasoningEnabled } from "./lib/tiny-tool-shim-config.js";
 
 interface TinyToolShimConfig {
 	baseUrl?: string;
@@ -36,6 +37,7 @@ interface TinyToolShimConfig {
 	allowTextFinal?: boolean;
 	terseProtocol?: TerseProtocolMode;
 	contextCompression?: "off" | "light";
+	thinkingEnabled?: boolean | string;
 }
 
 const DEFAULT_CONFIG: Required<TinyToolShimConfig> = {
@@ -53,6 +55,7 @@ const DEFAULT_CONFIG: Required<TinyToolShimConfig> = {
 	allowTextFinal: true,
 	terseProtocol: "terse",
 	contextCompression: "light",
+	thinkingEnabled: false,
 };
 
 let activeConfig: Required<TinyToolShimConfig> = { ...DEFAULT_CONFIG };
@@ -65,10 +68,16 @@ async function loadConfig(): Promise<Required<TinyToolShimConfig>> {
 	const configPath = expandHome("~/.pi/agent/extensions/tiny-tool-shim.json");
 	try {
 		const raw = await readFile(configPath, "utf8");
-		return { ...DEFAULT_CONFIG, ...(JSON.parse(raw) as TinyToolShimConfig) };
+		return mergeTinyToolConfig({ ...DEFAULT_CONFIG, ...(JSON.parse(raw) as TinyToolShimConfig) }) as Required<TinyToolShimConfig>;
 	} catch {
-		return { ...DEFAULT_CONFIG };
+		return mergeTinyToolConfig(DEFAULT_CONFIG) as Required<TinyToolShimConfig>;
 	}
+}
+
+async function saveConfig(config: Required<TinyToolShimConfig>): Promise<void> {
+	const configPath = expandHome("~/.pi/agent/extensions/tiny-tool-shim.json");
+	await mkdir(dirname(configPath), { recursive: true });
+	await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
 }
 
 function truncate(text: string, max: number): string {
@@ -322,6 +331,17 @@ function streamTinyTools(model: Model<Api>, context: Context, options?: SimpleSt
 	return stream;
 }
 
+function registerTinyToolsProvider(pi: ExtensionAPI, modelIds: string[]): void {
+	pi.registerProvider("tiny-tools", {
+		name: "Tiny Tools JSON Shim",
+		baseUrl: activeConfig.baseUrl,
+		apiKey: activeConfig.apiKey || "ollama",
+		api: "tiny-tools-openai" as Api,
+		models: buildTinyToolProviderModels(modelIds, activeConfig),
+		streamSimple: streamTinyTools,
+	});
+}
+
 async function discoverModelIds(config: Required<TinyToolShimConfig>): Promise<string[]> {
 	if (!config.discoverModels) return config.models;
 	try {
@@ -339,21 +359,31 @@ async function discoverModelIds(config: Required<TinyToolShimConfig>): Promise<s
 
 export default async function tinyToolShim(pi: ExtensionAPI) {
 	activeConfig = await loadConfig();
-	const modelIds = await discoverModelIds(activeConfig);
-	pi.registerProvider("tiny-tools", {
-		name: "Tiny Tools JSON Shim",
-		baseUrl: activeConfig.baseUrl,
-		apiKey: activeConfig.apiKey || "ollama",
-		api: "tiny-tools-openai" as Api,
-		models: modelIds.map((id) => ({
-			id,
-			name: `${id} (tiny tools)`,
-			reasoning: false,
-			input: ["text" as const],
-			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-			contextWindow: activeConfig.contextWindow,
-			maxTokens: activeConfig.maxTokens,
-		})),
-		streamSimple: streamTinyTools,
+	let modelIds = await discoverModelIds(activeConfig);
+	registerTinyToolsProvider(pi, modelIds);
+
+	pi.registerCommand("tiny-reasoning", {
+		description: "Enable, disable, or inspect TinyPi tiny-tools reasoning capability",
+		getArgumentCompletions: (prefix) => {
+			const options = ["on", "off", "status"];
+			return options.filter((o) => o.startsWith(prefix)).map((value) => ({ value, label: value }));
+		},
+		handler: async (args, ctx) => {
+			const action = args.trim().toLowerCase() || "status";
+			if (!["on", "off", "enable", "disable", "enabled", "disabled", "status"].includes(action)) {
+				ctx.ui.notify("Usage: /tiny-reasoning on|off|status", "error");
+				return;
+			}
+			if (action === "status") {
+				ctx.ui.notify(`TinyPi reasoning capability is ${activeConfig.thinkingEnabled ? "enabled" : "disabled"}.`, "info");
+				return;
+			}
+			const enabled = action === "on" || action === "enable" || action === "enabled";
+			activeConfig = setReasoningEnabled(activeConfig, enabled) as Required<TinyToolShimConfig>;
+			await saveConfig(activeConfig);
+			modelIds = await discoverModelIds(activeConfig);
+			registerTinyToolsProvider(pi, modelIds);
+			ctx.ui.notify(`TinyPi reasoning capability ${enabled ? "enabled" : "disabled"}. Re-select tiny-tools model if the UI still shows stale capability.`, "info");
+		},
 	});
 }
