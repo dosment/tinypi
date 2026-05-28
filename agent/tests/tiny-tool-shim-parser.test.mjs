@@ -82,6 +82,17 @@ const cases = [
 		input: '{"tool":"wiki_remember","arguments":{"tool_args":{"text":"TinyPi supports tiny models.","kind":"fact"}}}',
 		expect: { kind: "tool", name: "wiki_remember", arguments: { text: "TinyPi supports tiny models.", kind: "fact" } },
 	},
+
+	{
+		name: "mixed final plus tool prefers actionable tool call",
+		input: '{"final":"Saved it.","tool":"write","arguments":{"path":"exam.md","content":"# Exam"}}',
+		expect: { kind: "tool", name: "write", arguments: { path: "exam.md", content: "# Exam" } },
+	},
+	{
+		name: "malformed first JSON object in mixed output is rejected",
+		input: '{"final":[} then {"tool":"write","arguments":{"path":"exam.md"}}',
+		expectError: "Invalid JSON object",
+	},
 	{
 		name: "final_answer alias",
 		input: '{"final_answer":"Done."}',

@@ -2,7 +2,7 @@
   "name": "pi-extensions",
   "private": true,
   "scripts": {
-    "test:tiny-tool-shim": "node ../tests/tiny-tool-shim-parser.test.mjs",
+    "test:tiny-tool-shim": "node ../tests/tiny-tool-shim-parser.test.mjs && node ../tests/tiny-artifact-final-contract.test.mjs",
     "test:tiny-protocol": "node ../tests/tiny-protocol-core.test.mjs",
     "test:tiny-tool-router": "node ../tests/tiny-tool-router-core.test.mjs",
     "test:wiki-public": "node ../tests/wiki-public-core.test.mjs",

@@ -18,6 +18,7 @@ import {
 	type ToolCall,
 	type ToolResultMessage,
 } from "@earendil-works/pi-ai";
+import { assessArtifactFinalContract } from "./lib/tiny-artifact-final-contract.js";
 import { parseCommand, type ParsedCommand } from "./lib/tiny-tool-shim-parser.js";
 import { buildTerseProtocolBlock, compactLines, type TerseProtocolMode } from "./lib/tiny-protocol-core.js";
 import { buildTinyToolProviderModels, mergeTinyToolConfig, setReasoningEnabled } from "./lib/tiny-tool-shim-config.js";
@@ -249,6 +250,15 @@ async function maybeRepair(
 	return current;
 }
 
+function artifactFinalGuidance(reason: string): string {
+	return `I can't truthfully mark this artifact request complete yet. ${reason}`;
+}
+
+function validateFinalContract(context: Context, text: string): string | undefined {
+	const assessment = assessArtifactFinalContract({ messages: context.messages, finalText: text });
+	return assessment.ok ? undefined : assessment.message ?? assessment.reason;
+}
+
 function emitText(stream: AssistantMessageEventStream, output: AssistantMessage, text: string) {
 	output.content.push({ type: "text", text } satisfies TextContent);
 	stream.push({ type: "text_start", contentIndex: 0, partial: output });
@@ -309,16 +319,28 @@ function streamTinyTools(model: Model<Api>, context: Context, options?: SimpleSt
 				validation = parsed.command ? validateCommand(parsed.command, context.tools) : parsed.error;
 			}
 			if (!parsed.command) {
-				if (activeConfig.allowTextFinal) emitText(stream, output, text.trim() || `[tiny-tool-shim parse error: ${validation}]`);
-				else throw new Error(validation || "tiny-tool-shim could not parse model output");
-				} else if (parsed.command.kind === "final") {
-					emitText(stream, output, parsed.command.text);
-				} else if (validation) {
-					if (activeConfig.allowTextFinal) emitText(stream, output, `[tiny-tool-shim validation error: ${validation}]`);
-					else throw new Error(validation);
-				} else {
-					emitToolCall(stream, output, parsed.command);
+				if (activeConfig.allowTextFinal) {
+					const fallbackText = text.trim() || `[tiny-tool-shim parse error: ${validation}]`;
+					const finalValidation = validateFinalContract(context, fallbackText);
+					emitText(stream, output, finalValidation ? artifactFinalGuidance(finalValidation) : fallbackText);
+				} else throw new Error(validation || "tiny-tool-shim could not parse model output");
+			} else if (parsed.command.kind === "final") {
+				let finalValidation = validateFinalContract(context, parsed.command.text);
+				if (finalValidation) {
+					text = await maybeRepair(model, context, text, finalValidation, options);
+					parsed = parseCommand(text);
+					validation = parsed.command ? validateCommand(parsed.command, context.tools) : parsed.error;
+					if (parsed.command?.kind === "final" && !validation) finalValidation = validateFinalContract(context, parsed.command.text);
 				}
+				if (parsed.command?.kind === "final" && !validation && !finalValidation) emitText(stream, output, parsed.command.text);
+				else if (parsed.command?.kind === "tool" && !validation) emitToolCall(stream, output, parsed.command);
+				else emitText(stream, output, artifactFinalGuidance(finalValidation || validation || "The final answer did not satisfy the artifact completion contract."));
+			} else if (validation) {
+				if (activeConfig.allowTextFinal) emitText(stream, output, `[tiny-tool-shim validation error: ${validation}]`);
+				else throw new Error(validation);
+			} else {
+				emitToolCall(stream, output, parsed.command);
+			}
 			stream.push({ type: "done", reason: output.stopReason as "stop" | "length" | "toolUse", message: output });
 			stream.end();
 		} catch (error) {

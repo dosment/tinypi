@@ -34,6 +34,44 @@ assert.ok(ncpAaiQuiz.tools.includes("web_search"));
 assert.ok(ncpAaiQuiz.tools.includes("plan_create"));
 
 
+
+const artifactPrompts = [
+	"I need you to make a 20 question practice exam (multiple choice) covering NCP-AAI fundamentals",
+	"Build a quiz SKILL.md for NCP-AAI exam prep",
+	"generate an exam and cite official sources",
+	"build me a multiple choice question bank for ncp-aai exam and save it",
+];
+for (const prompt of artifactPrompts) {
+	const routed = routeTools(prompt, { maxTools: 10, autoPlanLongPrompts: true });
+	assert.ok(routed.bundles.includes("code"), prompt);
+	assert.ok(routed.reasons.includes("artifact"), prompt);
+	assert.ok(routed.tools.includes("read"), prompt);
+	assert.ok(routed.tools.includes("edit"), prompt);
+	assert.ok(routed.tools.includes("write"), prompt);
+	assert.ok(routed.tools.includes("bash"), prompt);
+}
+
+const artifactWithWebAndPlanning = routeTools("Build a quiz SKILL.md for NCP-AAI exam prep", { maxTools: 10, autoPlanLongPrompts: true });
+assert.ok(artifactWithWebAndPlanning.tools.includes("web_search"));
+assert.ok(artifactWithWebAndPlanning.tools.includes("plan_create"));
+
+
+const artifactDiscussionPrompts = [
+	"Can you explain how to create markdown artifacts in TinyPi?",
+	"Let's discuss docs and artifact routing before changing anything",
+	"What are markdown artifacts used for?",
+];
+for (const prompt of artifactDiscussionPrompts) {
+	const routed = routeTools(prompt, { maxTools: 10, autoPlanLongPrompts: true });
+	assert.ok(!routed.reasons.includes("artifact"), prompt);
+}
+
+const tinyArtifactToolBudget = routeTools("Build a quiz SKILL.md for NCP-AAI exam prep with official sources", { maxTools: 6, autoPlanLongPrompts: true });
+assert.ok(tinyArtifactToolBudget.tools.includes("web_search"), "small artifact budget preserves web_search");
+assert.ok(tinyArtifactToolBudget.tools.includes("plan_create"), "small artifact budget preserves plan_create");
+assert.ok(tinyArtifactToolBudget.tools.includes("read"), "small artifact budget preserves a write-path tool");
+assert.ok(tinyArtifactToolBudget.tools.includes("edit") || tinyArtifactToolBudget.tools.includes("write"), "small artifact budget preserves an edit/write tool");
+
 const requirementsBrief = routeTools("Draft a requirements brief for a new multiple choice exam prep skill", { maxTools: 10 });
 assert.ok(requirementsBrief.bundles.includes("planning_requirements"));
 assert.ok(requirementsBrief.tools.includes("requirements_brief"));
