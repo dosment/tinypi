@@ -27,6 +27,12 @@ const quizPlanning = routeTools("Design the question schema for multiple choice 
 assert.ok(quizPlanning.bundles.includes("planning"));
 assert.ok(quizPlanning.tools.includes("plan_create"));
 
+const ncpAaiQuiz = routeTools("I need you to build me multi-choice question quiz for the ncp-aai exam. let's talk about it", { maxTools: 10 });
+assert.ok(ncpAaiQuiz.bundles.includes("web"));
+assert.ok(ncpAaiQuiz.bundles.includes("planning"));
+assert.ok(ncpAaiQuiz.tools.includes("web_search"));
+assert.ok(ncpAaiQuiz.tools.includes("plan_create"));
+
 
 const requirementsBrief = routeTools("Draft a requirements brief for a new multiple choice exam prep skill", { maxTools: 10 });
 assert.ok(requirementsBrief.bundles.includes("planning_requirements"));

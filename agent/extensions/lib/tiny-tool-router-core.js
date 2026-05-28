@@ -15,7 +15,7 @@ export const TOOL_BUNDLES = Object.freeze({
 export const DEFAULT_MAX_TOOLS = 10;
 
 const CODE_RE = /\b(code|repo|file|files|bug|error|test|tests|build|install|readme|typescript|javascript|script|function|fix|implement|commit|diff|push|git|npm|extension|router|tool|skill|feature)\b/i;
-const WEB_RE = /\b(web|search|browse|look\s*up|latest|current|today|news|source|citation|docs?|official|url|https?:\/\/)\b/i;
+const WEB_RE = /\b(web|search|browse|look\s*up|latest|current|today|news|source|citation|docs?|official|url|https?:\/\/|ncp[- ]?aai|nvidia(?:\s+\w+){0,4}\s+(exam|certification|certificate)|exam\s+(guide|blueprint|objectives|topics|outline))\b/i;
 const MEMORY_RE = /\b(remember|memory|wiki|preference|preferences|decision|decisions|workflow|workflows|project history|prior|previous|convention|facts?|curate)\b/i;
 const MEMORY_MAINTENANCE_RE = /\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b.*\b(wiki|memory)\b|\b(wiki|memory)\b.*\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b/i;
 const PLANNING_RE = /\b(plan|planning|planned|active plan|next step|roadmap|approach|architecture|design|strategy|requirements?|schema|user flow|data structure|multi[- ]?step|risky|ambiguous|scope|tradeoff|tradeoffs|continue|resume|quiz|quizzes|quizzing|multiple choice|exam prep|question bank)\b/i;
@@ -145,7 +145,9 @@ export function routeTools(prompt, options = {}) {
 	const pinned = literalToolMentions(String(prompt ?? ""));
 	if (bundles.includes("planning_requirements")) addUnique(pinned, TOOL_BUNDLES.planning_requirements);
 	if (bundles.includes("planning_contract")) addUnique(pinned, TOOL_BUNDLES.planning_contract);
-	for (const bundle of bundles) addUnique(tools, TOOL_BUNDLES[bundle] ?? []);
+	const bundlePriority = ["base", "web", "web_followup", "planning", "planning_requirements", "planning_contract", "plan_complete", "code", "memory", "memory_maintenance", "learning"];
+	const orderedBundles = [...bundlePriority.filter((bundle) => bundles.includes(bundle)), ...bundles.filter((bundle) => !bundlePriority.includes(bundle))];
+	for (const bundle of orderedBundles) addUnique(tools, TOOL_BUNDLES[bundle] ?? []);
 	return {
 		bundles,
 		reasons,
