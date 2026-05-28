@@ -65,6 +65,7 @@ const required = [
 	"agent/extensions/lib/wiki-public-core.js",
 	"agent/extensions/tight-ask-user.ts",
 	"agent/extensions/tight-planning.ts",
+	"agent/extensions/lib/tight-planning-core.js",
 	"agent/extensions/tight-learning.ts",
 	"agent/extensions/lib/tight-learning-core.js",
 	"agent/skills/tinypi-maintainer/SKILL.md",
@@ -77,6 +78,7 @@ const required = [
 	"agent/tests/wiki-public-core.test.mjs",
 	"agent/tests/wiki-memory-core.test.mjs",
 	"agent/tests/tight-learning-core.test.mjs",
+	"agent/tests/tight-planning-core.test.mjs",
 	"agent/wiki/index.md",
 	"README.md",
 ];

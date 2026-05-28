@@ -6,10 +6,11 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { createRequirementsBrief, renderPlanningContract } from "./lib/tight-planning-core.js";
 
 const PLAN_DIR = join(homedir(), ".pi", "agent", "plans");
 const ACTIVE_PLAN_PATH = join(PLAN_DIR, "active.md");
-const PLAN_TOOLS = ["plan_create", "plan_read", "plan_update", "plan_complete"];
+const PLAN_TOOLS = ["requirements_brief", "planning_contract", "plan_create", "plan_read", "plan_update", "plan_complete"];
 const PLANNING_TOOLS = ["read", "grep", "find", "ls", "bash", "ask_user", ...PLAN_TOOLS];
 const MAX_TITLE = 120;
 const MAX_STEP = 240;
@@ -240,6 +241,71 @@ export default function tightPlanning(pi: ExtensionAPI) {
 			}
 			if (planningMode) leavePlanning(ctx);
 			else enterPlanning(ctx);
+		},
+	});
+
+
+	pi.registerTool({
+		name: "requirements_brief",
+		label: "Requirements Brief",
+		description: "Create a concise requirements brief from known context, assumptions, non-blocking unknowns, and at most one blocking question.",
+		promptSnippet: "Use requirements_brief when requirements are fuzzy but mostly inferable; ask only one blocking question.",
+		promptGuidelines: [
+			"Prefer concrete assumptions over generic questionnaires.",
+			"List known context, assumptions, missing-but-not-blocking details, and one blocking question only if truly needed.",
+			"Use before planning_contract when the user intent is under-specified.",
+		],
+		parameters: Type.Object({
+			goal: Type.String({ description: "The intended outcome." }),
+			userIntent: Type.Optional(Type.String({ description: "The user's request or implied intent." })),
+			knownContext: Type.Optional(Type.Array(Type.String(), { description: "Facts already known from inspection or conversation." })),
+			assumptions: Type.Optional(Type.Array(Type.String(), { description: "Reasonable assumptions to proceed." })),
+			missingButNotBlocking: Type.Optional(Type.Array(Type.String(), { description: "Unknown details that should not stop progress." })),
+			blockingQuestion: Type.Optional(Type.String({ description: "One concrete blocker question, or omit if none." })),
+			proposedFirstPlan: Type.Optional(Type.Array(Type.String(), { description: "Likely first implementation steps." })),
+		}),
+		async execute(_id, params) {
+			const text = createRequirementsBrief(params);
+			return { content: [{ type: "text", text }], details: { kind: "requirements_brief" } };
+		},
+		renderCall(args, theme) {
+			const goal = cleanText((args as { goal?: unknown }).goal, 80);
+			return new Text(theme.fg("toolTitle", theme.bold("requirements_brief ")) + theme.fg("accent", goal || "(untitled)"), 0, 0);
+		},
+	});
+
+	pi.registerTool({
+		name: "planning_contract",
+		label: "Planning Contract",
+		description: "Render a schema-first planning contract with facts, assumptions, unknowns, executable steps, done checks, and risk.",
+		promptSnippet: "Use planning_contract for multi-step work before edits; include done checks and dependencies.",
+		promptGuidelines: [
+			"Make executable assumptions instead of stalling on broad questions.",
+			"Each step should have an id, action, dependencies, and output.",
+			"Include done checks so execution can verify success.",
+		],
+		parameters: Type.Object({
+			goal: Type.String({ description: "The target outcome." }),
+			knownFacts: Type.Optional(Type.Array(Type.String(), { description: "Grounded facts from context or inspection." })),
+			assumptions: Type.Optional(Type.Array(Type.String(), { description: "Assumptions that permit progress." })),
+			unknowns: Type.Optional(Type.Array(Type.String(), { description: "Open questions or uncertainty." })),
+			oneQuestionIfBlocked: Type.Optional(Type.String({ description: "One targeted question only if blocked." })),
+			steps: Type.Array(Type.Object({
+				id: Type.Optional(Type.String({ description: "Short step id, e.g. E1." })),
+				action: Type.String({ description: "Concrete action." }),
+				needs: Type.Optional(Type.Array(Type.String(), { description: "Step ids this depends on." })),
+				output: Type.Optional(Type.String({ description: "Expected artifact or result." })),
+			}), { minItems: 1, maxItems: MAX_STEPS, description: "Executable ordered steps." }),
+			doneCheck: Type.Optional(Type.Array(Type.String(), { description: "Verification checks." })),
+			risk: Type.Optional(Type.Array(Type.String(), { description: "Material risks or caveats." })),
+		}),
+		async execute(_id, params) {
+			const text = renderPlanningContract(params);
+			return { content: [{ type: "text", text }], details: { kind: "planning_contract", steps: Array.isArray(params.steps) ? params.steps.length : 0 } };
+		},
+		renderCall(args, theme) {
+			const goal = cleanText((args as { goal?: unknown }).goal, 80);
+			return new Text(theme.fg("toolTitle", theme.bold("planning_contract ")) + theme.fg("accent", goal || "(untitled)"), 0, 0);
 		},
 	});
 

@@ -6,6 +6,8 @@ export const TOOL_BUNDLES = Object.freeze({
 	memory: ["wiki_search", "wiki_read", "wiki_remember"],
 	memory_maintenance: ["wiki_lint", "wiki_review"],
 	planning: ["plan_create", "plan_read", "plan_update"],
+	planning_requirements: ["requirements_brief"],
+	planning_contract: ["planning_contract"],
 	plan_complete: ["plan_complete"],
 	learning: ["learn_capture", "learn_review", "learn_apply", "learn_reject"],
 });
@@ -17,6 +19,8 @@ const WEB_RE = /\b(web|search|browse|look\s*up|latest|current|today|news|source|
 const MEMORY_RE = /\b(remember|memory|wiki|preference|preferences|decision|decisions|workflow|workflows|project history|prior|previous|convention|facts?|curate)\b/i;
 const MEMORY_MAINTENANCE_RE = /\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b.*\b(wiki|memory)\b|\b(wiki|memory)\b.*\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b/i;
 const PLANNING_RE = /\b(plan|planning|planned|active plan|next step|roadmap|approach|architecture|design|strategy|requirements?|schema|user flow|data structure|multi[- ]?step|risky|ambiguous|scope|tradeoff|tradeoffs|continue|resume|quiz|quizzes|quizzing|multiple choice|exam prep|question bank)\b/i;
+const REQUIREMENTS_BRIEF_RE = /\b(requirements? brief|brief requirements|clarify requirements|known context|blocking question|missing but not blocking)\b/i;
+const PLANNING_CONTRACT_RE = /\b(planning contract|plan contract|assumptions?|done checks?|unknowns?|one question if blocked|acceptance criteria)\b/i;
 const LEARNING_RE = /\b(learn|learning|lesson|lessons|self[- ]?learn|capture|pending learnings?|auto-memory|auto-safe|skill candidate|promote.*skill)\b/i;
 const COMPLETE_RE = /\b(plan_complete|complete (the )?(active )?plan|mark (the )?(active )?plan (complete|done)|close (the )?(active )?plan)\b/i;
 const EXECUTE_PLAN_RE = /\b(execute|run|work|continue|resume)\b.*\b(active plan|plan|planned step|next step)\b|\b(active plan|plan|planned step|next step)\b.*\b(execute|run|work|continue|resume)\b/i;
@@ -105,6 +109,14 @@ export function detectToolBundles(prompt, options = {}) {
 		bundles.push("planning");
 		reasons.push("planning");
 	}
+	if (REQUIREMENTS_BRIEF_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.planning_requirements)) {
+		bundles.push("planning_requirements");
+		reasons.push("requirements-brief");
+	}
+	if (PLANNING_CONTRACT_RE.test(text) || mentionsAny(text, TOOL_BUNDLES.planning_contract)) {
+		bundles.push("planning_contract");
+		reasons.push("planning-contract");
+	}
 	if (EXECUTE_PLAN_RE.test(text)) {
 		bundles.push("code");
 		reasons.push("plan-execution");
@@ -131,6 +143,8 @@ export function routeTools(prompt, options = {}) {
 	const { bundles, reasons } = detectToolBundles(prompt, options);
 	const tools = [];
 	const pinned = literalToolMentions(String(prompt ?? ""));
+	if (bundles.includes("planning_requirements")) addUnique(pinned, TOOL_BUNDLES.planning_requirements);
+	if (bundles.includes("planning_contract")) addUnique(pinned, TOOL_BUNDLES.planning_contract);
 	for (const bundle of bundles) addUnique(tools, TOOL_BUNDLES[bundle] ?? []);
 	return {
 		bundles,

@@ -27,6 +27,15 @@ const quizPlanning = routeTools("Design the question schema for multiple choice 
 assert.ok(quizPlanning.bundles.includes("planning"));
 assert.ok(quizPlanning.tools.includes("plan_create"));
 
+
+const requirementsBrief = routeTools("Draft a requirements brief for a new multiple choice exam prep skill", { maxTools: 10 });
+assert.ok(requirementsBrief.bundles.includes("planning_requirements"));
+assert.ok(requirementsBrief.tools.includes("requirements_brief"));
+
+const planningContract = routeTools("Create a planning contract with assumptions and done checks before implementing", { maxTools: 10 });
+assert.ok(planningContract.bundles.includes("planning_contract"));
+assert.ok(planningContract.tools.includes("planning_contract"));
+
 const web = routeTools("Look up the latest official docs for this API", { maxTools: 9 });
 assert.ok(web.bundles.includes("web"));
 assert.ok(web.tools.includes("web_search"));
