@@ -3,6 +3,7 @@ import {
 	createRequirementsBrief,
 	normalizePlanningContract,
 	renderPlanningContract,
+	validatePlanCompletion,
 } from "../extensions/lib/tight-planning-core.js";
 
 const brief = createRequirementsBrief({
@@ -51,5 +52,37 @@ assert.deepEqual(sparse.knownFacts, []);
 assert.equal(sparse.steps[0].id, "E1");
 assert.equal(sparse.steps[1].id, "E2");
 assert.equal(sparse.steps[0].output, "completed subtask result");
+
+function makePlan(statuses) {
+	return {
+		title: "Test plan",
+		steps: statuses.map((status, index) => ({ status, text: `Step ${index + 1}` })),
+		notes: [],
+	};
+}
+
+const pendingPlan = makePlan(["done", "pending"]);
+const pendingBefore = structuredClone(pendingPlan);
+const pendingCompletion = validatePlanCompletion(pendingPlan);
+assert.equal(pendingCompletion.completed, false);
+assert.equal(pendingCompletion.error, "unfinished steps");
+assert.deepEqual(pendingCompletion.unfinishedSteps.map((step) => step.step), [2]);
+assert.match(pendingCompletion.message, /step 2 \(pending\)/);
+assert.match(pendingCompletion.message, /Use plan_update/);
+assert.deepEqual(pendingPlan, pendingBefore, "failed completion validation must not mutate the plan");
+
+const inProgressCompletion = validatePlanCompletion(makePlan(["done", "in_progress"]));
+assert.equal(inProgressCompletion.completed, false);
+assert.match(inProgressCompletion.message, /step 2 \(in_progress\)/);
+
+const blockedCompletion = validatePlanCompletion(makePlan(["done", "blocked"]));
+assert.equal(blockedCompletion.completed, false);
+assert.match(blockedCompletion.message, /step 2 \(blocked\)/);
+
+const completePlan = makePlan(["done", "done"]);
+const doneCompletion = validatePlanCompletion(completePlan);
+assert.equal(doneCompletion.completed, true);
+assert.deepEqual(doneCompletion.unfinishedSteps, []);
+assert.deepEqual(completePlan.steps.map((step) => step.status), ["done", "done"]);
 
 console.log("tight-planning core smoke tests passed");

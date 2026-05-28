@@ -2,11 +2,12 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Type } from "typebox";
 import { Text } from "@earendil-works/pi-tui";
-import { mkdir, readdir, readFile, stat, writeFile, appendFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, normalize, relative } from "node:path";
 import { findDuplicateLineIssues, formatMemoryLint, memoryPageIssues, normalizedLine, splitSections, summarizeLintIssues } from "./lib/wiki-memory-core.js";
+import { appendMemoryAtomically, executeWikiRemember } from "./lib/wiki-memory-write-core.js";
 import { formatPublicWikiLint, lintPublicWiki } from "./lib/wiki-public-core.js";
 
 const AGENT_DIR = process.env.PI_CODING_AGENT_DIR || join(homedir(), ".pi", "agent");
@@ -183,9 +184,13 @@ async function appendMemory(scope: Exclude<Scope, "both">, kind: MemoryKind, tex
 	await ensureWikiRoot(root, scope);
 	const relPath = targetPageForKind(kind);
 	const path = join(root, relPath);
-	if (!existsSync(path)) await writeFile(path, `# ${relPath.replace(/\.md$/, "")}\n\n`, "utf8");
-	await appendFile(path, memoryBlock(text, kind, source), "utf8");
-	await appendFile(join(root, "log.jsonl"), JSON.stringify({ ts: new Date().toISOString(), scope, kind, path: relPath, text, source }) + "\n", "utf8");
+	await appendMemoryAtomically({
+		root,
+		relPath,
+		header: `# ${relPath.replace(/\.md$/, "")}\n\n`,
+		block: memoryBlock(text, kind, source),
+		logLine: JSON.stringify({ ts: new Date().toISOString(), scope, kind, path: relPath, text, source }) + "\n",
+	});
 	return { path, relPath };
 }
 
@@ -356,17 +361,7 @@ export default function wikiMemory(pi: ExtensionAPI) {
 			source: Type.Optional(Type.String({ description: "Usually omit. Short source label." })),
 		}),
 		async execute(_id, params, _signal, _onUpdate, ctx) {
-			const text = typeof params.text === "string" ? params.text.trim() : "";
-			if (!text) return { content: [{ type: "text", text: "Error: text is required." }], details: { error: "missing text" } };
-			const kind = normalizeKind(params.kind);
-			const scope = params.scope === "global" ? "global" : "project";
-			const source = typeof params.source === "string" && params.source.trim() ? params.source.trim() : "user-approved";
-			const preview = `Save this ${kind} memory to ${scope} wiki?\n\n${clampText(text, 1000)}`;
-			const ok = await ctx.ui.confirm("Save wiki memory?", preview);
-			if (!ok) return { content: [{ type: "text", text: "Memory not saved." }], details: { saved: false } };
-			const result = await appendMemory(scope, kind, text, source);
-			await notifyMemoryLintIssues(ctx, scope);
-			return { content: [{ type: "text", text: `Memory saved to ${scope}:${result.relPath}` }], details: { saved: true, scope, path: result.relPath, kind } };
+			return executeWikiRemember(params, ctx, { normalizeKind, clampText, appendMemory, notifyMemoryLintIssues });
 		},
 	});
 }

@@ -75,6 +75,32 @@ export function renderPlanningContract(contractInput) {
 	return out.trim() + "\n";
 }
 
+
+export function getUnfinishedPlanSteps(plan = {}) {
+	const steps = Array.isArray(plan.steps) ? plan.steps : [];
+	return steps
+		.map((step, index) => ({
+			step: index + 1,
+			status: step?.status || "pending",
+			text: cleanText(step?.text, MAX_ITEM),
+		}))
+		.filter((step) => step.status !== "done");
+}
+
+export function validatePlanCompletion(plan = {}) {
+	const unfinishedSteps = getUnfinishedPlanSteps(plan);
+	if (!unfinishedSteps.length) return { completed: true, unfinishedSteps: [] };
+	const list = unfinishedSteps
+		.map((step) => `- step ${step.step} (${step.status}): ${step.text || "untitled step"}`)
+		.join("\n");
+	return {
+		completed: false,
+		error: "unfinished steps",
+		unfinishedSteps,
+		message: `Error: plan_complete refused because the active plan still has unfinished steps.\n${list}\nUse plan_update to mark each step done only after the actual work is finished. Blocked, pending, and in_progress steps must be resolved before plan_complete will stamp the plan completed.`,
+	};
+}
+
 export function createRequirementsBrief(input = {}) {
 	const raw = input && typeof input === "object" ? input : {};
 	let out = "## Requirements Brief\n\n";

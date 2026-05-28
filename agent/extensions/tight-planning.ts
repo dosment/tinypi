@@ -6,7 +6,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { createRequirementsBrief, renderPlanningContract } from "./lib/tight-planning-core.js";
+import { createRequirementsBrief, renderPlanningContract, validatePlanCompletion } from "./lib/tight-planning-core.js";
 
 const PLAN_DIR = join(homedir(), ".pi", "agent", "plans");
 const ACTIVE_PLAN_PATH = join(PLAN_DIR, "active.md");
@@ -409,7 +409,13 @@ export default function tightPlanning(pi: ExtensionAPI) {
 		async execute(_id, params) {
 			const plan = await readPlan();
 			if (!plan) return { content: [{ type: "text", text: "Error: no active plan." }], details: { error: "no active plan" } };
-			plan.steps = plan.steps.map((step) => ({ ...step, status: step.status === "blocked" ? "blocked" : "done" }));
+			const completion = validatePlanCompletion(plan);
+			if (!completion.completed) {
+				return {
+					content: [{ type: "text", text: completion.message }],
+					details: { error: completion.error, completed: false, unfinishedSteps: completion.unfinishedSteps },
+				};
+			}
 			plan.completed = today();
 			plan.updated = today();
 			const summary = cleanText(params.summary, MAX_NOTE);
