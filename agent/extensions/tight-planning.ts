@@ -6,7 +6,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { StringEnum } from "@earendil-works/pi-ai";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { createRequirementsBrief, renderPlanningContract, validatePlanCompletion } from "./lib/tight-planning-core.js";
+import { createRequirementsBrief, isSafePlanningCommand, renderPlanningContract, validatePlanCompletion } from "./lib/tight-planning-core.js";
 
 const PLAN_DIR = join(homedir(), ".pi", "agent", "plans");
 const ACTIVE_PLAN_PATH = join(PLAN_DIR, "active.md");
@@ -132,35 +132,6 @@ Rules:
 - Ask the user before leaving planning mode for broad or risky work.${activePlan}`;
 	}
 	return "Internal planning guidance only; do not mention this status in the reply. For broad, multi-step, risky, or ambiguous work, inspect available context, including web_search/fetch_content when internet research was requested, then create or read a concrete plan before editing. Do not chain generic ask_user questions; ask at most one targeted clarification unless blocked. Skip planning for simple one-shot tasks.";
-}
-
-function isSafePlanningCommand(command: string): boolean {
-	const destructive = [
-		/\brm\b/i,
-		/\bmv\b/i,
-		/\bcp\b/i,
-		/\bmkdir\b/i,
-		/\btouch\b/i,
-		/\bchmod\b/i,
-		/\bchown\b/i,
-		/(^|[^<])>(?!>)/,
-		/>>/,
-		/\bnpm\s+(install|uninstall|update|ci|publish)/i,
-		/\byarn\s+(add|remove|install|publish)/i,
-		/\bpnpm\s+(add|remove|install|publish)/i,
-		/\bgit\s+(add|commit|push|pull|merge|rebase|reset|checkout|stash|cherry-pick|revert)/i,
-		/\bsudo\b/i,
-		/\bkill(all)?\b/i,
-	];
-	const safe = [
-		/^\s*(pwd|ls|cat|head|tail|wc|sort|uniq|diff|file|stat|du|df|which|type|env|printenv|date|whoami|id)\b/i,
-		/^\s*(grep|find|rg|fd|sed\s+-n|awk)\b/i,
-		/^\s*git\s+(status|log|diff|show|branch|remote|config\s+--get|ls-)/i,
-		/^\s*npm\s+(list|ls|view|info|outdated|audit)\b/i,
-		/^\s*node\s+--version\b/i,
-		/^\s*python3?\s+--version\b/i,
-	];
-	return safe.some((p) => p.test(command)) && !destructive.some((p) => p.test(command));
 }
 
 export default function tightPlanning(pi: ExtensionAPI) {

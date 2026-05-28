@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
 	createRequirementsBrief,
+	isSafePlanningCommand,
 	normalizePlanningContract,
 	renderPlanningContract,
 	validatePlanCompletion,
@@ -84,5 +85,27 @@ const doneCompletion = validatePlanCompletion(completePlan);
 assert.equal(doneCompletion.completed, true);
 assert.deepEqual(doneCompletion.unfinishedSteps, []);
 assert.deepEqual(completePlan.steps.map((step) => step.status), ["done", "done"]);
+
+
+const safePlanningCommands = [
+	"git status --short",
+	"grep -RIn planning agent/extensions",
+	"rg planning agent/extensions",
+	"sed -n '1,10p' README.md",
+];
+for (const command of safePlanningCommands) {
+	assert.equal(isSafePlanningCommand(command), true, `${command} should be allowed in planning mode`);
+}
+
+const blockedPlanningCommands = [
+	"sed -n -i 's/foo/bar/p' README.md",
+	"sed -n '1w /tmp/tinypi-planning-write.txt' README.md",
+	"sed -n '1,10p;2w /tmp/tinypi-planning-write.txt' README.md",
+	"awk '{ print > \"/tmp/tinypi-planning-write.txt\" }' README.md",
+	"awk 'BEGIN { system(\"touch /tmp/tinypi-planning-write.txt\") }' README.md",
+];
+for (const command of blockedPlanningCommands) {
+	assert.equal(isSafePlanningCommand(command), false, `${command} should be blocked in planning mode`);
+}
 
 console.log("tight-planning core smoke tests passed");

@@ -34,6 +34,108 @@ function cleanStep(step, index) {
 	};
 }
 
+
+function shellWords(command) {
+	const words = [];
+	let current = "";
+	let quote = null;
+	let escaped = false;
+	for (const ch of String(command ?? "")) {
+		if (escaped) {
+			current += ch;
+			escaped = false;
+			continue;
+		}
+		if (ch === "\\" && quote !== "'") {
+			escaped = true;
+			continue;
+		}
+		if (quote) {
+			if (ch === quote) quote = null;
+			else current += ch;
+			continue;
+		}
+		if (ch === "'" || ch === '"') {
+			quote = ch;
+			continue;
+		}
+		if (/\s/.test(ch)) {
+			if (current) {
+				words.push(current);
+				current = "";
+			}
+			continue;
+		}
+		current += ch;
+	}
+	if (quote || escaped) return [];
+	if (current) words.push(current);
+	return words;
+}
+
+function isSafeSedScript(script) {
+	const address = String.raw`(?:\d+|\$|/[^/\n]+/)`;
+	const safePrint = new RegExp(`^(?:${address}(?:,${address})?)?p$`);
+	return safePrint.test(script.trim());
+}
+
+function isSafeSedCommand(command) {
+	const words = shellWords(command);
+	if (words[0] !== "sed") return false;
+	let sawQuiet = false;
+	let script = null;
+	for (let index = 1; index < words.length; index += 1) {
+		const word = words[index];
+		if (script === null && word.startsWith("-")) {
+			if (word === "--in-place" || word.startsWith("--in-place=")) return false;
+			if (word === "-n") {
+				sawQuiet = true;
+				continue;
+			}
+			if (/^-n?[Eru]*n?[Eru]*$/.test(word) && word.includes("n") && !word.includes("i")) {
+				sawQuiet = true;
+				continue;
+			}
+			return false;
+		}
+		if (script === null) {
+			script = word;
+			continue;
+		}
+	}
+	return sawQuiet && typeof script === "string" && isSafeSedScript(script);
+}
+
+export function isSafePlanningCommand(command) {
+	const destructive = [
+		/\brm\b/i,
+		/\bmv\b/i,
+		/\bcp\b/i,
+		/\bmkdir\b/i,
+		/\btouch\b/i,
+		/\bchmod\b/i,
+		/\bchown\b/i,
+		/(^|[^<])>(?!>)/,
+		/>>/,
+		/\bnpm\s+(install|uninstall|update|ci|publish)/i,
+		/\byarn\s+(add|remove|install|publish)/i,
+		/\bpnpm\s+(add|remove|install|publish)/i,
+		/\bgit\s+(add|commit|push|pull|merge|rebase|reset|checkout|stash|cherry-pick|revert)/i,
+		/\bsudo\b/i,
+		/\bkill(all)?\b/i,
+	];
+	const safe = [
+		/^\s*(pwd|ls|cat|head|tail|wc|sort|uniq|diff|file|stat|du|df|which|type|env|printenv|date|whoami|id)\b/i,
+		/^\s*(grep|find|rg|fd)\b/i,
+		/^\s*git\s+(status|log|diff|show|branch|remote|config\s+--get|ls-)/i,
+		/^\s*npm\s+(list|ls|view|info|outdated|audit)\b/i,
+		/^\s*node\s+--version\b/i,
+		/^\s*python3?\s+--version\b/i,
+	];
+	if (destructive.some((p) => p.test(command))) return false;
+	return safe.some((p) => p.test(command)) || (/^\s*sed\b/i.test(command) && isSafeSedCommand(command.trim()));
+}
+
 export function normalizePlanningContract(input = {}) {
 	const raw = input && typeof input === "object" ? input : {};
 	const steps = (Array.isArray(raw.steps) ? raw.steps : [])
