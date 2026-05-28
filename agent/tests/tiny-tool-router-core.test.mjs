@@ -105,7 +105,7 @@ assert.ok(learningApplyFollowup.tools.includes("learn_apply"));
 
 assert.deepEqual(filterAvailableTools(["ask_user", "missing", "wiki_search"], ["ask_user", "wiki_search"]), ["ask_user", "wiki_search"]);
 
-assert.equal(isExplicitPlanningToolSet(["read", "grep", "find", "ls", "bash", "ask_user", "plan_create", "plan_read", "plan_update", "plan_complete"]), true);
+assert.equal(isExplicitPlanningToolSet(["read", "grep", "find", "ls", "bash", "ask_user", "web_search", "fetch_content", "get_search_content", "plan_create", "plan_read", "plan_update", "plan_complete"]), true);
 assert.equal(isExplicitPlanningToolSet(["read", "grep", "bash", "edit", "plan_create", "plan_update"]), false);
 
 console.log("tiny-tool-router core smoke tests passed");

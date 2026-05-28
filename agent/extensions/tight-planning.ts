@@ -11,7 +11,8 @@ import { createRequirementsBrief, renderPlanningContract } from "./lib/tight-pla
 const PLAN_DIR = join(homedir(), ".pi", "agent", "plans");
 const ACTIVE_PLAN_PATH = join(PLAN_DIR, "active.md");
 const PLAN_TOOLS = ["requirements_brief", "planning_contract", "plan_create", "plan_read", "plan_update", "plan_complete"];
-const PLANNING_TOOLS = ["read", "grep", "find", "ls", "bash", "ask_user", ...PLAN_TOOLS];
+const WEB_RESEARCH_TOOLS = ["web_search", "fetch_content", "get_search_content"];
+const PLANNING_TOOLS = ["read", "grep", "find", "ls", "bash", "ask_user", ...WEB_RESEARCH_TOOLS, ...PLAN_TOOLS];
 const MAX_TITLE = 120;
 const MAX_STEP = 240;
 const MAX_STEPS = 12;
@@ -124,12 +125,13 @@ You are in read-only planning mode. Answer the user's latest request by inspecti
 Rules:
 - Do not edit or write files in planning mode.
 - Use read, grep, find, ls, and read-only bash to inspect existing files/docs before planning.
+- Use web_search and fetch_content when the user asks for internet/current research; do not ask for source documents if web research was requested.
 - Do not run a survey of generic ask_user questions. Ask at most one concrete clarification only when inspection cannot answer it.
 - Use plan_create for a new numbered implementation plan with specific assumptions and details.
 - Use plan_update if refining an existing active plan.
 - Ask the user before leaving planning mode for broad or risky work.${activePlan}`;
 	}
-	return "Internal planning guidance only; do not mention this status in the reply. For broad, multi-step, risky, or ambiguous work, inspect available context, then create or read a concrete plan before editing. Do not chain generic ask_user questions; ask at most one targeted clarification unless blocked. Skip planning for simple one-shot tasks.";
+	return "Internal planning guidance only; do not mention this status in the reply. For broad, multi-step, risky, or ambiguous work, inspect available context, including web_search/fetch_content when internet research was requested, then create or read a concrete plan before editing. Do not chain generic ask_user questions; ask at most one targeted clarification unless blocked. Skip planning for simple one-shot tasks.";
 }
 
 function isSafePlanningCommand(command: string): boolean {
