@@ -22,6 +22,14 @@ interface AskUserDetails {
 	answer: string | null;
 	wasCustom?: boolean;
 	cancelled?: boolean;
+	repeatedQuestion?: boolean;
+}
+
+interface RecentAnswer {
+	questionKey: string;
+	question: string;
+	answer: string | null;
+	cancelled?: boolean;
 }
 
 const OptionSchema = Type.Object({
@@ -31,6 +39,10 @@ const OptionSchema = Type.Object({
 
 function cleanText(value: unknown, max: number): string {
 	return String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max).trim();
+}
+
+function questionKey(question: string): string {
+	return question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function normalizeOptions(input: unknown): AskOption[] {
@@ -53,6 +65,13 @@ function normalizeOptions(input: unknown): AskOption[] {
 }
 
 export default function tightAskUser(pi: ExtensionAPI) {
+	const recentAnswers: RecentAnswer[] = [];
+
+	function rememberAnswer(entry: RecentAnswer) {
+		recentAnswers.unshift(entry);
+		recentAnswers.splice(5);
+	}
+
 	pi.on("session_start", () => {
 		const active = pi.getActiveTools().map((t) => t.name);
 		if (!active.includes("ask_user")) active.push("ask_user");
@@ -68,6 +87,7 @@ export default function tightAskUser(pi: ExtensionAPI) {
 			"Use ask_user when required information is missing and guessing could cause wrong work.",
 			"For ask_user, ask exactly one question with 2-4 clear options. Keep labels short.",
 			"Do not use ask_user for trivial choices you can safely infer from repo evidence.",
+			"Do not ask the same question again after the user answered, cancelled, or said they are only curious / do not need action. Proceed with that answer instead.",
 		],
 		parameters: Type.Object({
 			question: Type.String({ description: "One concise question ending in ?. Max 300 chars." }),
@@ -80,6 +100,16 @@ export default function tightAskUser(pi: ExtensionAPI) {
 			const options = normalizeOptions(params.options);
 			const allowCustom = params.allowCustom !== false;
 			const labels = options.map((o) => o.label);
+			const key = questionKey(question);
+			const previous = key ? recentAnswers.find((entry) => entry.questionKey === key) : undefined;
+
+			if (previous) {
+				const prior = previous.cancelled ? "the user cancelled it" : `the user answered: ${previous.answer}`;
+				return {
+					content: [{ type: "text", text: `Repeated question blocked. You already asked: ${previous.question}. ${prior}. Do not call ask_user again for this question; answer or continue using that user response.` }],
+					details: { question, options: labels, answer: previous.answer, cancelled: previous.cancelled, repeatedQuestion: true } as AskUserDetails,
+				};
+			}
 
 			if (!question) {
 				return { content: [{ type: "text", text: "Error: question is required." }], details: { error: "missing question" } };
@@ -195,8 +225,10 @@ export default function tightAskUser(pi: ExtensionAPI) {
 			);
 
 			if (!result) {
+				rememberAnswer({ questionKey: key, question, answer: null, cancelled: true });
 				return { content: [{ type: "text", text: "User cancelled." }], details: { question, options: labels, answer: null, cancelled: true } as AskUserDetails };
 			}
+			rememberAnswer({ questionKey: key, question, answer: result.answer });
 			const text = result.wasCustom ? `User answered: ${result.answer}` : `User selected: ${result.index}. ${result.answer}`;
 			return { content: [{ type: "text", text }], details: { question, options: labels, answer: result.answer, wasCustom: result.wasCustom } as AskUserDetails };
 		},
@@ -212,6 +244,7 @@ export default function tightAskUser(pi: ExtensionAPI) {
 		renderResult(result, _options, theme) {
 			const details = result.details as AskUserDetails | undefined;
 			if (!details) return new Text("", 0, 0);
+			if (details.repeatedQuestion) return new Text(theme.fg("warning", "↻ repeated question blocked"), 0, 0);
 			if (!details.answer) return new Text(theme.fg("warning", "No answer"), 0, 0);
 			const prefix = details.wasCustom ? "answered" : "selected";
 			return new Text(theme.fg("success", "✓ ") + theme.fg("muted", `${prefix}: `) + theme.fg("accent", details.answer), 0, 0);

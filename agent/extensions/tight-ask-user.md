@@ -63,6 +63,7 @@ Avoid using it for:
 - trivial choices that repo evidence answers
 - questions where a safe default exists
 - multi-step planning conversations
+- repeating the same question after the user already answered, cancelled, or said no action is needed
 - asking the user to do the model's investigation work
 
 ## Example
@@ -88,6 +89,8 @@ The user can:
 - cancel
 
 In non-interactive mode, the tool returns a compact prompt describing the needed user input.
+
+If a model repeats the exact same question after the user has already answered or cancelled it in the same session, `ask_user` blocks the repeat and returns the prior response so the model can continue instead of looping.
 
 ## Why This Helps Tiny Models
 
