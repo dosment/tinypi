@@ -17,6 +17,16 @@ assert.ok(code.tools.includes("edit"));
 const findToolName = routeTools("Use find to locate package files", { maxTools: 9 });
 assert.ok(findToolName.tools.includes("find"));
 
+const quizSkillFollowup = routeTools("can you help me build skills?\nI suppose multiple choice quizzing for exam prep", { maxTools: 10 });
+assert.ok(quizSkillFollowup.bundles.includes("code"));
+assert.ok(quizSkillFollowup.bundles.includes("planning"));
+assert.ok(quizSkillFollowup.tools.includes("read"));
+assert.ok(quizSkillFollowup.tools.includes("plan_create"));
+
+const quizPlanning = routeTools("Design the question schema for multiple choice exam prep quizzes", { maxTools: 10 });
+assert.ok(quizPlanning.bundles.includes("planning"));
+assert.ok(quizPlanning.tools.includes("plan_create"));
+
 const web = routeTools("Look up the latest official docs for this API", { maxTools: 9 });
 assert.ok(web.bundles.includes("web"));
 assert.ok(web.tools.includes("web_search"));

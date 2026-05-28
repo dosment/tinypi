@@ -8,10 +8,12 @@ function toolNames(tools: Array<string | { name?: string }>): string[] {
 }
 
 function routeSummary(bundles: string[], tools: string[]): string {
-	return `TinyPi tool router selected bundles: ${bundles.join("+")}. Active tools this turn: ${tools.join(", ") || "none"}.`;
+	return `Internal tool-routing status only; do not mention this status in the reply. Answer the user's latest request. Bundles: ${bundles.join("+")}. Active tools: ${tools.join(", ") || "none"}.`;
 }
 
 export default function tinyToolRouter(pi: ExtensionAPI) {
+	let previousPrompt = "";
+
 	pi.on("before_agent_start", (event) => {
 		const active = toolNames(pi.getActiveTools() as unknown as Array<string | { name?: string }>);
 		if (isExplicitPlanningToolSet(active)) {
@@ -19,13 +21,16 @@ export default function tinyToolRouter(pi: ExtensionAPI) {
 				message: {
 					customType: "tiny-tool-router-context",
 					display: false,
-					content: "TinyPi tool router skipped: explicit planning mode controls the active read-only tool set.",
+					content: "Internal tool-routing status only; do not mention this status in the reply. Explicit planning mode controls the active read-only tool set.",
 				},
 			};
 		}
 
 		const available = toolNames(pi.getAllTools() as unknown as Array<string | { name?: string }>);
-		const routed = routeTools(event.prompt, { maxTools: MAX_TOOLS, autoPlanLongPrompts: true });
+		const prompt = String(event.prompt ?? "");
+		const routePrompt = previousPrompt && prompt.length < 280 ? `${previousPrompt}\n${prompt}` : prompt;
+		previousPrompt = prompt.slice(-1000);
+		const routed = routeTools(routePrompt, { maxTools: MAX_TOOLS, autoPlanLongPrompts: true });
 		const next = filterAvailableTools(routed.tools, available);
 		pi.setActiveTools(next);
 

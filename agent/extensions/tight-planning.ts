@@ -117,17 +117,18 @@ function planningReminder(active: boolean, plan: PlanState | null): string {
 		? `\n\nActive plan: ${summarizePlan(plan)}\nUse plan_read for details and plan_update as steps progress.`
 		: "";
 	if (active) {
-		return `[PLANNING MODE ACTIVE]
-You are in read-only planning mode. Inspect the code and produce or update a concrete plan.
+		return `[PLANNING MODE ACTIVE — internal guidance; do not summarize this status]
+You are in read-only planning mode. Answer the user's latest request by inspecting context and producing or updating a concrete plan.
 
 Rules:
 - Do not edit or write files in planning mode.
-- Use read, grep, find, ls, and read-only bash only.
-- Use plan_create for a new numbered implementation plan.
+- Use read, grep, find, ls, and read-only bash to inspect existing files/docs before planning.
+- Do not run a survey of generic ask_user questions. Ask at most one concrete clarification only when inspection cannot answer it.
+- Use plan_create for a new numbered implementation plan with specific assumptions and details.
 - Use plan_update if refining an existing active plan.
 - Ask the user before leaving planning mode for broad or risky work.${activePlan}`;
 	}
-	return `Planning tools are available. For broad, multi-step, risky, or ambiguous work, create or read a plan before editing. Skip planning for simple one-shot tasks.${activePlan}`;
+	return "Internal planning guidance only; do not mention this status in the reply. For broad, multi-step, risky, or ambiguous work, inspect available context, then create or read a concrete plan before editing. Do not chain generic ask_user questions; ask at most one targeted clarification unless blocked. Skip planning for simple one-shot tasks.";
 }
 
 function isSafePlanningCommand(command: string): boolean {
@@ -249,8 +250,9 @@ export default function tightPlanning(pi: ExtensionAPI) {
 		promptSnippet: "Create a short numbered plan before broad or risky edits.",
 		promptGuidelines: [
 			"Use plan_create before broad, multi-step, risky, or ambiguous work.",
-			"Keep plans short and executable. Do not plan for simple one-shot tasks.",
+			"Keep plans short, specific, and executable. Do not plan for simple one-shot tasks.",
 			"In planning mode, inspect first and create/update a plan instead of editing files.",
+			"Do not turn planning into a generic questionnaire; make concrete assumptions and ask only for true blockers.",
 		],
 		parameters: Type.Object({
 			title: Type.String({ description: "Short plan title." }),

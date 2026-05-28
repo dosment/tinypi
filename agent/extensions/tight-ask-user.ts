@@ -6,6 +6,7 @@ const MAX_OPTIONS = 4;
 const MAX_QUESTION_CHARS = 300;
 const MAX_LABEL_CHARS = 60;
 const MAX_DESCRIPTION_CHARS = 160;
+const MAX_QUESTIONS_PER_TURN = 2;
 
 interface AskOption {
 	label: string;
@@ -66,11 +67,16 @@ function normalizeOptions(input: unknown): AskOption[] {
 
 export default function tightAskUser(pi: ExtensionAPI) {
 	const recentAnswers: RecentAnswer[] = [];
+	let questionsThisTurn = 0;
 
 	function rememberAnswer(entry: RecentAnswer) {
 		recentAnswers.unshift(entry);
 		recentAnswers.splice(5);
 	}
+
+	pi.on("before_agent_start", () => {
+		questionsThisTurn = 0;
+	});
 
 	pi.on("session_start", () => {
 		const active = pi.getActiveTools().map((t) => t.name);
@@ -87,6 +93,8 @@ export default function tightAskUser(pi: ExtensionAPI) {
 			"Use ask_user when required information is missing and guessing could cause wrong work.",
 			"For ask_user, ask exactly one question with 2-4 clear options. Keep labels short.",
 			"Do not use ask_user for trivial choices you can safely infer from repo evidence.",
+			"Do not chain generic requirement-survey questions. After one or two answers, summarize assumptions, inspect context, create a plan, or proceed.",
+			"Ask for concrete missing details, not broad categories, unless the broad category is the true blocker.",
 			"Do not ask the same question again after the user answered, cancelled, or said they are only curious / do not need action. Proceed with that answer instead.",
 		],
 		parameters: Type.Object({
@@ -117,6 +125,14 @@ export default function tightAskUser(pi: ExtensionAPI) {
 			if (options.length < 2) {
 				return { content: [{ type: "text", text: "Error: provide 2-4 distinct options." }], details: { error: "not enough options" } };
 			}
+			if (questionsThisTurn >= MAX_QUESTIONS_PER_TURN) {
+				return {
+					content: [{ type: "text", text: "Ask-user budget reached for this turn. Do not ask another generic question; summarize what you know, state concrete assumptions, inspect available context, or create/update a plan." }],
+					details: { question, options: labels, answer: null, questionBudgetExceeded: true } as AskUserDetails & { questionBudgetExceeded: boolean },
+				};
+			}
+			questionsThisTurn += 1;
+
 			if (!ctx.hasUI) {
 				return {
 					content: [{ type: "text", text: `Need user input: ${question}\nOptions: ${labels.join(" | ")}` }],

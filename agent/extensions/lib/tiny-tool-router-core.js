@@ -12,11 +12,11 @@ export const TOOL_BUNDLES = Object.freeze({
 
 export const DEFAULT_MAX_TOOLS = 10;
 
-const CODE_RE = /\b(code|repo|file|files|bug|error|test|tests|build|install|readme|typescript|javascript|script|function|fix|implement|commit|diff|push|git|npm|extension|router|tool|skill)\b/i;
+const CODE_RE = /\b(code|repo|file|files|bug|error|test|tests|build|install|readme|typescript|javascript|script|function|fix|implement|commit|diff|push|git|npm|extension|router|tool|skill|feature)\b/i;
 const WEB_RE = /\b(web|search|browse|look\s*up|latest|current|today|news|source|citation|docs?|official|url|https?:\/\/)\b/i;
 const MEMORY_RE = /\b(remember|memory|wiki|preference|preferences|decision|decisions|workflow|workflows|project history|prior|previous|convention|facts?|curate)\b/i;
 const MEMORY_MAINTENANCE_RE = /\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b.*\b(wiki|memory)\b|\b(wiki|memory)\b.*\b(lint|review|audit|drift|cleanup|clean up|dedupe|duplicate|contradiction|stale)\b/i;
-const PLANNING_RE = /\b(plan|planning|planned|active plan|next step|roadmap|approach|architecture|design|strategy|multi[- ]?step|risky|ambiguous|scope|tradeoff|tradeoffs|continue|resume)\b/i;
+const PLANNING_RE = /\b(plan|planning|planned|active plan|next step|roadmap|approach|architecture|design|strategy|requirements?|schema|user flow|data structure|multi[- ]?step|risky|ambiguous|scope|tradeoff|tradeoffs|continue|resume|quiz|quizzes|quizzing|multiple choice|exam prep|question bank)\b/i;
 const LEARNING_RE = /\b(learn|learning|lesson|lessons|self[- ]?learn|capture|pending learnings?|auto-memory|auto-safe|skill candidate|promote.*skill)\b/i;
 const COMPLETE_RE = /\b(plan_complete|complete (the )?(active )?plan|mark (the )?(active )?plan (complete|done)|close (the )?(active )?plan)\b/i;
 const EXECUTE_PLAN_RE = /\b(execute|run|work|continue|resume)\b.*\b(active plan|plan|planned step|next step)\b|\b(active plan|plan|planned step|next step)\b.*\b(execute|run|work|continue|resume)\b/i;

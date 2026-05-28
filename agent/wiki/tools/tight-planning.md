@@ -7,7 +7,7 @@ tags:
   - tinypi
   - planning
   - guardrails
-updated: 2026-05-27
+updated: 2026-05-28
 ---
 
 # Tight Planning Extension
@@ -71,5 +71,6 @@ When planning mode is active:
 - `edit` and `write` tool calls are blocked.
 - `bash` is restricted to read-only inspection commands.
 - The model is instructed to inspect first and create/update a plan instead of modifying files.
+- Planning should not become a chain of generic `ask_user` questions; ask at most one targeted clarification unless truly blocked, then make concrete assumptions.
 
-Outside explicit planning mode, the tool router exposes planning tools for broad, multi-step, risky, or ambiguous work, and keeps them out of context for simple one-shot tasks.
+Outside explicit planning mode, the tool router exposes planning tools for broad, multi-step, risky, or ambiguous work, and keeps them out of context for simple one-shot tasks. Existing active plans stay available through `plan_read` but are not pushed into every ordinary turn.

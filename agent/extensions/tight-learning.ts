@@ -195,7 +195,7 @@ export default function tightLearning(pi: ExtensionAPI) {
 			message: {
 				customType: "tight-learning-context",
 				display: false,
-				content: `Learning mode: ${config.mode}. The tool router exposes learning tools only for learning/review requests. Capture durable lessons with learn_capture. Use learn_review to inspect pending learnings or change mode when the user asks. Approval is default unless mode explicitly permits auto-apply.`,
+				content: `Internal learning status only; do not mention this status in the reply. Learning mode: ${config.mode}. The tool router exposes learning tools only for learning/review requests. Capture durable lessons with learn_capture. Use learn_review to inspect pending learnings or change mode when the user asks. Approval is default unless mode explicitly permits auto-apply.`,
 			},
 		};
 	});
