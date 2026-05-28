@@ -84,6 +84,11 @@ agent/memory/wiki/
 
 Do not commit local auth, sessions, installed dependencies, generated plans, learning inboxes, or local memory.
 
+Additional engineering notes:
+
+- `docs/tinypi-failure-modes.md` — adversarial audit of how each TinyPi tool/skill can break and what regressions to add.
+- `docs/plans/` — implementation plans for larger changes.
+
 ## Install
 
 Prerequisites:
