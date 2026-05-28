@@ -1,14 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Editor, type EditorTheme, Key, matchesKey, Text, truncateToWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { WEB_TOOLS, asksForWebContext, shouldRedirectAskUserToWebSearch, webSearchRedirectMessage } from "./lib/tight-ask-user-core.js";
 
 const MAX_OPTIONS = 4;
 const MAX_QUESTION_CHARS = 300;
 const MAX_LABEL_CHARS = 60;
 const MAX_DESCRIPTION_CHARS = 160;
 const MAX_QUESTIONS_PER_TURN = 2;
-const WEB_TOOLS = ["web_search", "fetch_content", "get_search_content"];
-const WEB_REQUEST_RE = /\b(web|search|internet|online|website|site|url|link|links|docs?|documentation|official|nvidia|find it|look it up|try again)\b/i;
 
 interface AskOption {
 	label: string;
@@ -121,6 +120,16 @@ export default function tightAskUser(pi: ExtensionAPI) {
 			const labels = options.map((o) => o.label);
 			const key = questionKey(question);
 			const previous = key ? recentAnswers.find((entry) => entry.questionKey === key) : undefined;
+			const activeTools = pi.getActiveTools().map((t) => t.name);
+			const availableTools = (pi.getAllTools() as Array<{ name?: string }>).map((t) => t.name).filter((name): name is string => Boolean(name));
+
+			if (shouldRedirectAskUserToWebSearch({ question, options: labels, activeTools, availableTools })) {
+				enableWebToolsIfAvailable();
+				return {
+					content: [{ type: "text", text: webSearchRedirectMessage(question) }],
+					details: { question, options: labels, answer: null, webRedirect: true } as AskUserDetails & { webRedirect: boolean },
+				};
+			}
 
 			if (previous) {
 				const prior = previous.cancelled ? "the user cancelled it" : `the user answered: ${previous.answer}`;
@@ -256,7 +265,7 @@ export default function tightAskUser(pi: ExtensionAPI) {
 				return { content: [{ type: "text", text: "User cancelled." }], details: { question, options: labels, answer: null, cancelled: true } as AskUserDetails };
 			}
 			rememberAnswer({ questionKey: key, question, answer: result.answer });
-			const shouldEnableWeb = WEB_REQUEST_RE.test(result.answer) || WEB_REQUEST_RE.test(question);
+			const shouldEnableWeb = asksForWebContext(result.answer) || asksForWebContext(question);
 			if (shouldEnableWeb) enableWebToolsIfAvailable();
 			const text = (result.wasCustom ? `User answered: ${result.answer}` : `User selected: ${result.index}. ${result.answer}`)
 				+ (shouldEnableWeb ? "\nWeb research tools are now available. If the user asked you to search/find official docs, call web_search next instead of asking another source-material question." : "");
@@ -274,6 +283,7 @@ export default function tightAskUser(pi: ExtensionAPI) {
 		renderResult(result, _options, theme) {
 			const details = result.details as AskUserDetails | undefined;
 			if (!details) return new Text("", 0, 0);
+			if ((details as AskUserDetails & { webRedirect?: boolean }).webRedirect) return new Text(theme.fg("warning", "↪ use web_search instead"), 0, 0);
 			if (details.repeatedQuestion) return new Text(theme.fg("warning", "↻ repeated question blocked"), 0, 0);
 			if (!details.answer) return new Text(theme.fg("warning", "No answer"), 0, 0);
 			const prefix = details.wasCustom ? "answered" : "selected";
