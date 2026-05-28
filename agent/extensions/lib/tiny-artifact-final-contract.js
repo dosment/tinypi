@@ -4,6 +4,8 @@ const SUCCESS_CLAIM_RE = /\b(?:done|compiled|created|made|built|wrote|written|ge
 const GENERIC_SUCCESS_PHRASE_RE = /\b(?:i (?:have )?(?:created|made|built|written|generated|saved|prepared|completed|finished|compiled|drafted|produced)|it is (?:done|complete|ready|finished)|the (?:artifact|exam|quiz|document|file|report|brief|guide|skill|deck|app|page) (?:is|has been) (?:done|complete|ready|finished|created|built|written|generated|saved))\b/i;
 const STRUCTURED_ARTIFACT_RE = /(^\s{0,3}#{1,6}\s+\S)|(^\s*```)|(^\s*\|[^\n]*\|)|(^\s*[-*]\s+\S)|(^\s*(?:\{\s*"|\[\s*\{))|(^\s*[A-Za-z0-9_ -]+,[A-Za-z0-9_ -]+(?:,[A-Za-z0-9_ -]+)*)/im;
 const WRITE_TOOL_RE = /^(?:write|edit|save|create|append|patch|replace|apply_patch|write_file|plan_create|requirements_brief|wiki_remember|learn_capture)$/i;
+const SAVE_LOCATION_QUESTION_RE = /\b(?:where|what\s+(?:file|path|location)|which\s+(?:file|path|location))\b[\s\S]{0,80}\b(?:save|saved|write|wrote|put|store|stored|questions?|artifact|file|path|location)\b|\b(?:save|saved|write|wrote|put|store|stored)\b[\s\S]{0,80}\b(?:where|what\s+(?:file|path|location)|which\s+(?:file|path|location))\b/i;
+const NOT_SAVED_TRUTH_RE = /\b(?:did\s+not|didn[’'\u2019]?t|not|never|haven[’'\u2019]?t|have\s+not|wasn[’'\u2019]?t|was\s+not|isn[’'\u2019]?t|is\s+not)\b[\s\S]{0,80}\b(?:save|saved|write|written|wrote|create|created|store|stored)|\b(?:no\s+(?:file|artifact|saved\s+copy)|not\s+saved\s+yet|nowhere)\b/i;
 
 function textFromContent(content) {
 	if (typeof content === "string") return content;
@@ -36,6 +38,14 @@ export function isConcreteArtifactRequest(prompt = "") {
 	if (!text) return false;
 	if (/\b(?:what is|who is|when is|where is|why is|how does|explain|summari[sz]e|define|tell me about)\b/i.test(text) && !ARTIFACT_ACTION_RE.test(text)) return false;
 	return ARTIFACT_ACTION_RE.test(text) && ARTIFACT_NOUN_RE.test(text);
+}
+
+export function isSaveLocationQuestion(prompt = "") {
+	return SAVE_LOCATION_QUESTION_RE.test(prompt.trim());
+}
+
+function finalTruthfullySaysNotSaved(finalText = "") {
+	return NOT_SAVED_TRUTH_RE.test(finalText.trim());
 }
 
 function isWriteToolName(name) {
@@ -95,8 +105,19 @@ export function finalContainsRequestedArtifact(prompt = "", finalText = "") {
 
 export function assessArtifactFinalContract({ messages = [], finalText = "" } = {}) {
 	const prompt = latestUserText(messages);
+	const priorArtifactWrite = hasPriorArtifactWrite(messages);
+	if (isSaveLocationQuestion(prompt)) {
+		if (priorArtifactWrite) return { ok: true, reason: "prior_artifact_write" };
+		if (finalTruthfullySaysNotSaved(finalText)) return { ok: true, reason: "truthful_not_saved" };
+		return {
+			ok: false,
+			reason: "save_location_without_write",
+			message:
+				"No write/edit/create tool record exists for this session. Do not invent a save location; say plainly that it was not saved anywhere yet.",
+		};
+	}
 	if (!isConcreteArtifactRequest(prompt)) return { ok: true, reason: "not_artifact_request" };
-	if (hasPriorArtifactWrite(messages)) return { ok: true, reason: "prior_artifact_write" };
+	if (priorArtifactWrite) return { ok: true, reason: "prior_artifact_write" };
 	if (finalContainsRequestedArtifact(prompt, finalText)) return { ok: true, reason: "final_contains_artifact" };
 	return {
 		ok: false,

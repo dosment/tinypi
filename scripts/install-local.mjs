@@ -7,12 +7,13 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	realpathSync,
 	rmSync,
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -76,6 +77,56 @@ function mergeSettingsJson(sourceSettings, targetSettings) {
 		}
 	}
 	return merged;
+}
+
+
+function isPathAtOrInside(parent, candidate) {
+	const child = relative(parent, candidate);
+	return child === "" || (!child.startsWith("..") && !isAbsolute(child));
+}
+
+function nearestExistingParent(target) {
+	let parent = existsSync(target) ? target : dirname(target);
+	while (!existsSync(parent)) {
+		const next = dirname(parent);
+		if (next === parent) return parent;
+		parent = next;
+	}
+	return parent;
+}
+
+function canonicalPath(target) {
+	const absoluteTarget = resolve(target);
+	if (existsSync(absoluteTarget)) return realpathSync(absoluteTarget);
+	const parent = nearestExistingParent(absoluteTarget);
+	return resolve(realpathSync(parent), relative(parent, absoluteTarget));
+}
+
+function assertSafeInstallTarget() {
+	const realSourceAgent = canonicalPath(sourceAgent);
+	const realTargetAgent = canonicalPath(targetAgent);
+	if (isPathAtOrInside(realSourceAgent, realTargetAgent)) {
+		throw new Error(
+			`refusing to install TinyPi into its source agent directory: ${targetAgent} (source: ${sourceAgent})`,
+		);
+	}
+
+	const manifestEntries = [
+		...TINYPI_OWNED_INSTALL_MANIFEST,
+		...SHARED_CONFIG_MANIFEST,
+		{ source: "npm/package.json", target: "npm/package.json" },
+		{ source: "npm/package-lock.json", target: "npm/package-lock.json" },
+	];
+	for (const entry of manifestEntries) {
+		const src = join(sourceAgent, entry.source);
+		if (!existsSync(src)) continue;
+		const dest = join(targetAgent, entry.target);
+		const realSrc = canonicalPath(src);
+		const realDest = canonicalPath(dest);
+		if (realSrc === realDest) {
+			throw new Error(`refusing self-target install for ${entry.target}: ${dest}`);
+		}
+	}
 }
 
 function installSettingsJson(entry) {
@@ -162,6 +213,7 @@ function listInstalledExtensions() {
 	return readdirSync(dir).filter((name) => name.endsWith(".ts")).sort();
 }
 
+assertSafeInstallTarget();
 ensureDir(targetAgent);
 log(`installing to ${targetAgent}`);
 

@@ -4,6 +4,7 @@ import {
 	finalContainsRequestedArtifact,
 	hasPriorArtifactWrite,
 	isConcreteArtifactRequest,
+	isSaveLocationQuestion,
 } from "../extensions/lib/tiny-artifact-final-contract.js";
 
 const ncpExamPrompt = "I need you to make a 20 question practice exam (multiple choice) covering NCP-AAI fundamentals";
@@ -25,6 +26,25 @@ const normalAnswer = assessArtifactFinalContract({
 	finalText: "TinyPi is a small-model harness overlay for pi.dev.",
 });
 assert.equal(normalAnswer.ok, true, "non-artifact final answers still work");
+
+const saveLocationFollowUp = [
+	{ role: "user", content: ncpExamPrompt },
+	{ role: "assistant", content: [{ type: "text", text: "I compiled the exam." }] },
+	{ role: "user", content: "Where did you save the questions?" },
+];
+assert.equal(isSaveLocationQuestion("Where did you save the questions?"), true, "live save-location follow-up is detected");
+const inventedSaveLocation = assessArtifactFinalContract({
+	messages: saveLocationFollowUp,
+	finalText: "I saved the questions in /tmp/ncp-aai-practice-exam.md.",
+});
+assert.equal(inventedSaveLocation.ok, false, "save-location answer must not invent a path when no write happened");
+assert.equal(inventedSaveLocation.reason, "save_location_without_write");
+assert.match(inventedSaveLocation.message ?? "", /not saved anywhere yet|Do not invent/i);
+assert.equal(
+	assessArtifactFinalContract({ messages: saveLocationFollowUp, finalText: "I did not save them anywhere yet." }).reason,
+	"truthful_not_saved",
+	"truthful not-saved answer is allowed for live follow-up",
+);
 
 const priorWriteMessages = messagesFor(ncpExamPrompt, [
 	{

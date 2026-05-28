@@ -7,8 +7,9 @@
   "scripts": {
     "install:local": "node scripts/install-local.mjs",
     "install:local:symlink": "node scripts/install-local.mjs --symlink",
-    "test": "npm --prefix agent/npm test",
+    "test": "node scripts/install-local.test.mjs && npm --prefix agent/npm test",
     "verify": "node scripts/verify-installable.mjs",
-    "test:verify-installable": "node scripts/verify-installable.test.mjs"
+    "test:verify-installable": "node scripts/verify-installable.test.mjs",
+    "test:install-local": "node scripts/install-local.test.mjs"
   }
 }
